@@ -178,10 +178,19 @@ export default async function CampaignDetailPage({
                 <dt className="text-[var(--ink-soft)]">Dĺžka</dt>
                 <dd className="font-semibold">{content.durationSec}s</dd>
               </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-[var(--ink-soft)]">Storage</dt>
-                <dd className="truncate font-mono text-xs">{content.storageKey}</dd>
-              </div>
+              {content.storageKey.startsWith("data:audio") ? (
+                <div className="space-y-2 pt-2">
+                  <dt className="text-[var(--ink-soft)]">Preview (TTS)</dt>
+                  <dd>
+                    <audio controls src={content.storageKey} className="w-full" />
+                  </dd>
+                </div>
+              ) : (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--ink-soft)]">Storage</dt>
+                  <dd className="truncate font-mono text-xs">{content.storageKey}</dd>
+                </div>
+              )}
             </dl>
           ) : (
             <p className="text-sm text-[var(--ink-soft)]">Content nenájdený</p>

@@ -18,6 +18,7 @@ import {
   type TimeWindow,
 } from "@/lib/massiva/timetable";
 import type { Chain, Contract, Venue } from "@/lib/massiva/types";
+import { SpotTtsPanel } from "@/components/spot-tts-panel";
 
 const VenueMap = dynamic(
   () => import("./venue-map").then((m) => m.VenueMap),
@@ -528,39 +529,17 @@ export function CampaignBuilder({
           />
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="field">
-            <label htmlFor="spotName">Názov spotu</label>
-            <input
-              id="spotName"
-              name="spotName"
-              required
-              defaultValue="Reklamný spot"
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="spotFilename">Súbor (mock)</label>
-            <input
-              id="spotFilename"
-              name="spotFilename"
-              required
-              defaultValue="spot-30s.mp3"
-            />
-          </div>
-        </div>
-
         <div className="field">
-          <label htmlFor="spotDurationSec">Dĺžka spotu (s)</label>
+          <label htmlFor="spotName">Názov spotu</label>
           <input
-            id="spotDurationSec"
-            name="spotDurationSec"
-            type="number"
-            min={5}
-            max={120}
-            defaultValue={30}
+            id="spotName"
+            name="spotName"
             required
+            defaultValue="Reklamný spot"
           />
         </div>
+
+        <SpotTtsPanel disabled={!canOrder} />
 
         <p className="text-xs text-[var(--ink-soft)]">
           Rate engine: venue base + daypart/occupancy + footfall CPT + CPP floor +

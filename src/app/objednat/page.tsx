@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitOrderAction } from "@/lib/actions";
+import { SpotTtsPanel } from "@/components/spot-tts-panel";
 import { formatEur } from "@/lib/format";
 import { canOrderWithContract } from "@/lib/massiva/contracts";
 import { getMassivaClient } from "@/lib/massiva/client";
@@ -146,42 +147,18 @@ export default async function OrderPage({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="field">
-              <label htmlFor="spotName">Názov spotu</label>
-              <input
-                id="spotName"
-                name="spotName"
-                defaultValue="Reklamný spot"
-                required
-                disabled={!orderable}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="spotFilename">Súbor (mock)</label>
-              <input
-                id="spotFilename"
-                name="spotFilename"
-                defaultValue="spot-30s.mp3"
-                required
-                disabled={!orderable}
-              />
-            </div>
-          </div>
-
           <div className="field">
-            <label htmlFor="spotDurationSec">Dĺžka spotu (s)</label>
+            <label htmlFor="spotName">Názov spotu</label>
             <input
-              id="spotDurationSec"
-              name="spotDurationSec"
-              type="number"
-              min={5}
-              max={120}
-              defaultValue={30}
+              id="spotName"
+              name="spotName"
+              defaultValue="Reklamný spot"
               required
               disabled={!orderable}
             />
           </div>
+
+          <SpotTtsPanel disabled={!orderable} />
 
           <label className="flex items-start gap-2 text-sm">
             <input
@@ -205,8 +182,7 @@ export default async function OrderPage({
           </label>
 
           <p className="text-sm text-[var(--ink-soft)]">
-            MVP: namiesto uploadu stačí názov súboru. Mock vytvorí Content a
-            Campaign cez Massiva klienta.
+            Spot: AI Gateway TTS (OpenAI). Bez vygenerovania ostane mock súbor.
           </p>
 
           <button

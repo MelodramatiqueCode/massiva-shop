@@ -21,6 +21,7 @@ export async function submitOrderAction(formData: FormData) {
   const spotName = String(formData.get("spotName") || "").trim();
   const spotFilename = String(formData.get("spotFilename") || "spot.mp3").trim();
   const spotDurationSec = Number(formData.get("spotDurationSec") || 30);
+  const spotStorageKey = String(formData.get("spotStorageKey") || "").trim();
   const acceptTerms = formData.get("acceptTerms") === "on";
 
   if (
@@ -45,6 +46,7 @@ export async function submitOrderAction(formData: FormData) {
     spotName: spotName || campaignName,
     spotFilename,
     spotDurationSec,
+    spotStorageKey: spotStorageKey || undefined,
     acceptTerms,
   });
 
@@ -66,6 +68,7 @@ export async function submitCampaignBuilderAction(formData: FormData) {
   const spotName = String(formData.get("spotName") || "").trim();
   const spotFilename = String(formData.get("spotFilename") || "spot.mp3").trim();
   const spotDurationSec = Number(formData.get("spotDurationSec") || 30);
+  const spotStorageKey = String(formData.get("spotStorageKey") || "").trim();
   const acceptTerms = formData.get("acceptTerms") === "on";
   const contractId = String(formData.get("contractId") || "").trim();
 
@@ -123,6 +126,7 @@ export async function submitCampaignBuilderAction(formData: FormData) {
     spotName: spotName || campaignName,
     spotFilename,
     spotDurationSec,
+    spotStorageKey: spotStorageKey || undefined,
     acceptTerms,
     contractId: contractId || undefined,
   });

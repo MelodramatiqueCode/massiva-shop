@@ -42,6 +42,22 @@ REST náhľad:
 - `GET /api/massiva/packages`
 - `GET /api/massiva/contracts`
 
+## Spot TTS (AI Gateway)
+
+Objednávka / builder má panel **Spot cez AI Gateway**:
+
+1. Napíšte SK text
+2. Vyberte hlas
+3. **Vygenerovať audio** → preview
+4. Odošlite objednávku (audio ide do Content)
+
+**Auth**
+
+- **Vercel produkcia:** väčšinou bez nastavení (OIDC na linked projekte)
+- **Lokálne:** `AI_GATEWAY_API_KEY` v `.env.local` alebo `vercel env pull`
+
+Model: `openai/tts-1` cez Gateway. Google Chirp neskôr ako samostatný provider.
+
 ## Poznámka
 
-Žiadna ostrá platba (Stripe) ani upload MP3 — MVP mockuje spot názvom súboru.
+Platba (Stripe) ešte nie je. Bez TTS sa spot stále mockuje názvom súboru.

@@ -45,6 +45,7 @@ export async function placeOrder(input: {
   spotName: string;
   spotFilename: string;
   spotDurationSec: number;
+  spotStorageKey?: string;
   acceptTerms?: boolean;
 }) {
   if (!input.acceptTerms) {
@@ -66,7 +67,8 @@ export async function placeOrder(input: {
     filename: input.spotFilename,
     durationSec: input.spotDurationSec,
     accountId: DEMO_ACCOUNT.id,
-    storageKey: `mock://uploads/${input.spotFilename}`,
+    storageKey:
+      input.spotStorageKey || `mock://uploads/${input.spotFilename}`,
   } satisfies CreateContentInput);
 
   const venues = await api.getVenues();
@@ -136,6 +138,7 @@ export async function placeCustomCampaign(input: {
   spotName: string;
   spotFilename: string;
   spotDurationSec: number;
+  spotStorageKey?: string;
   packageId?: string;
   acceptTerms?: boolean;
   contractId?: string;
@@ -202,7 +205,8 @@ export async function placeCustomCampaign(input: {
     filename: input.spotFilename,
     durationSec: input.spotDurationSec,
     accountId: DEMO_ACCOUNT.id,
-    storageKey: `mock://uploads/${input.spotFilename}`,
+    storageKey:
+      input.spotStorageKey || `mock://uploads/${input.spotFilename}`,
   } satisfies CreateContentInput);
 
   const campaign = await api.createCampaign({
