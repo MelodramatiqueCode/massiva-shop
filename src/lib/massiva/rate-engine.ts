@@ -11,7 +11,7 @@ export const MIN_CAMPAIGN_DAYS = 3;
 export const MAX_PLAYS_PER_HOUR = 8;
 export const BASE_WINDOW_HOURS = 8;
 /** Fallback when venue has no rate (legacy store). */
-export const PRICE_PER_VENUE_PER_DAY_EUR = 18;
+export const PRICE_PER_VENUE_PER_DAY_EUR = 9;
 /** Assumed store open hours for footfall share. */
 export const STORE_OPEN_HOURS = 12;
 /** Share of visitors who hear a spot during window (mock). */

@@ -49,10 +49,10 @@ function hydrateVenues(
       isOnline: v.isOnline ?? seed?.isOnline ?? true,
       lat: typeof v.lat === "number" ? v.lat : (seed?.lat ?? 48.7),
       lng: typeof v.lng === "number" ? v.lng : (seed?.lng ?? 19.5),
-      baseRateEur: v.baseRateEur ?? seed?.baseRateEur ?? 18,
-      footfallDaily: v.footfallDaily ?? seed?.footfallDaily ?? 3000,
-      tier: v.tier ?? seed?.tier ?? "C",
-      occupancyPct: v.occupancyPct ?? seed?.occupancyPct ?? 0.5,
+      baseRateEur: seed?.baseRateEur ?? v.baseRateEur ?? 9,
+      footfallDaily: seed?.footfallDaily ?? v.footfallDaily ?? 3000,
+      tier: seed?.tier ?? v.tier ?? "C",
+      occupancyPct: seed?.occupancyPct ?? v.occupancyPct ?? 0.5,
     };
   });
 }
