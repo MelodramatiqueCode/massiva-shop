@@ -5,6 +5,7 @@ import {
   ELEVENLABS_VOICES,
 } from "@/lib/tts/elevenlabs";
 import { TTS_VOICES as GATEWAY_VOICES } from "@/lib/tts/gateway";
+import { BED_CATALOG } from "@/lib/tts/beds-catalog";
 
 type Props = {
   disabled?: boolean;
@@ -33,10 +34,19 @@ export function SpotTtsPanel({
   );
   const [script, setScript] = useState(defaultScript);
   const [voice, setVoice] = useState(voices[0]?.id ?? "");
+  const [bedEnabled, setBedEnabled] = useState(true);
+  const [bedId, setBedId] = useState(BED_CATALOG[0]?.id ?? "soft");
+  /** UI: 0–100 → mapuje na ~−28 … −10 dB */
+  const [bedLevel, setBedLevel] = useState(45);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
   const [audio, setAudio] = useState<AudioPayload | null>(null);
+
+  function bedVolumeDbFromLevel(level: number): number {
+    const t = Math.max(0, Math.min(100, level)) / 100;
+    return -28 + t * 18;
+  }
 
   async function generate() {
     setLoading(true);
@@ -46,7 +56,12 @@ export function SpotTtsPanel({
       const res = await fetch("/api/tts/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: script, voice }),
+        body: JSON.stringify({
+          text: script,
+          voice,
+          bedId: bedEnabled ? bedId : null,
+          bedVolumeDb: bedEnabled ? bedVolumeDbFromLevel(bedLevel) : undefined,
+        }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -133,6 +148,59 @@ export function SpotTtsPanel({
         </div>
       </div>
 
+      <div className="space-y-3 border-t border-[var(--line)] pt-3">
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={bedEnabled}
+            onChange={(e) => setBedEnabled(e.target.checked)}
+            disabled={disabled || loading}
+          />
+          <span className="font-medium">Podmaz (hudba pod hlasom)</span>
+        </label>
+
+        {bedEnabled ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="field">
+              <label htmlFor="bedStyle">Štýl podkladu</label>
+              <select
+                id="bedStyle"
+                name="bedStyle"
+                value={bedId}
+                onChange={(e) => setBedId(e.target.value)}
+                disabled={disabled || loading}
+              >
+                {BED_CATALOG.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} — {b.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="bedLevel">
+                Hlasitosť podkladu ({bedLevel}%)
+              </label>
+              <input
+                id="bedLevel"
+                name="bedLevel"
+                type="range"
+                min={0}
+                max={100}
+                value={bedLevel}
+                onChange={(e) => setBedLevel(Number(e.target.value))}
+                disabled={disabled || loading}
+                className="w-full"
+              />
+              <p className="mt-1 text-xs text-[var(--ink-soft)]">
+                Hlas ostáva dominantný; podklad ~{bedVolumeDbFromLevel(bedLevel).toFixed(0)}{" "}
+                dB.
+              </p>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
       {error ? (
         <div className="rounded-lg border border-[rgba(212,83,60,0.45)] bg-[rgba(212,83,60,0.12)] px-3 py-2 text-sm">
           <p className="font-semibold">{error}</p>
@@ -146,6 +214,7 @@ export function SpotTtsPanel({
           <p className="text-xs text-[var(--ink-soft)]">
             {audio.filename} · ~{audio.durationSec}s · {audio.voice}
             {audio.provider ? ` · ${audio.provider}` : ""}
+            {bedEnabled ? ` · podmaz ${bedId}` : ""}
           </p>
         </div>
       ) : (

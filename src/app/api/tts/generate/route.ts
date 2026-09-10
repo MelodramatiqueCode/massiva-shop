@@ -13,6 +13,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       text?: string;
       voice?: string;
+      bedId?: string | null;
+      bedVolumeDb?: number;
     };
 
     const text = String(body.text || "").trim();
@@ -35,9 +37,16 @@ export async function POST(request: Request) {
       );
     }
 
+    const bedVolumeDb =
+      typeof body.bedVolumeDb === "number" && Number.isFinite(body.bedVolumeDb)
+        ? body.bedVolumeDb
+        : undefined;
+
     const audio = await generateSpotAudio({
       text,
       voice: body.voice,
+      bedId: body.bedId || null,
+      bedVolumeDb,
     });
 
     return NextResponse.json({ ok: true, audio, provider });
