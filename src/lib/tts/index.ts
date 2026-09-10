@@ -35,6 +35,8 @@ export async function generateSpotAudio(input: {
   voice?: string;
   /** ElevenLabs model id (v2 / v3). Ignorované pri gateway. */
   model?: string | null;
+  /** sk | hu — pri hu server vynúti eleven_v3 + language_code. */
+  language?: string | null;
   bedId?: string | null;
   /** Hlasitosť podkladu v dB (typicky -22 … -12). Default -18. */
   bedVolumeDb?: number;
@@ -51,6 +53,7 @@ export async function generateSpotAudio(input: {
       text: input.text,
       voiceId: input.voice,
       model: input.model,
+      language: input.language,
     });
   }
 

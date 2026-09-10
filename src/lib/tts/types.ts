@@ -28,9 +28,13 @@ export function assertSpotScript(text: string) {
   return t;
 }
 
+export type SpotLanguage = "sk" | "hu";
+
 export type TtsVoiceOption = {
   id: string;
   label: string;
+  /** Jazyky, pre ktoré je hlas v katalógu. Default: sk+hu. */
+  languages?: SpotLanguage[];
 };
 
 export function getTtsProvider(): "elevenlabs" | "gateway" {

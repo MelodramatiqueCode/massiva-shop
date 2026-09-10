@@ -14,6 +14,7 @@ export async function POST(request: Request) {
       text?: string;
       voice?: string;
       model?: string | null;
+      language?: string | null;
       bedId?: string | null;
       bedVolumeDb?: number;
     };
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
       text,
       voice: body.voice,
       model: body.model || null,
+      language: body.language || null,
       bedId: body.bedId || null,
       bedVolumeDb,
     });
