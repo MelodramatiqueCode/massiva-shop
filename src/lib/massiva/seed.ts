@@ -32,6 +32,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_tesco",
     region: "BA",
     isOnline: true,
+    lat: 48.1332,
+    lng: 17.1074,
   },
   {
     id: "ven_ba_02",
@@ -41,6 +43,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_billa",
     region: "BA",
     isOnline: true,
+    lat: 48.1465,
+    lng: 17.1112,
   },
   {
     id: "ven_ba_03",
@@ -50,6 +54,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_kaufland",
     region: "BA",
     isOnline: true,
+    lat: 48.1178,
+    lng: 17.1091,
   },
   {
     id: "ven_ba_04",
@@ -59,6 +65,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_lidl",
     region: "BA",
     isOnline: false,
+    lat: 48.1571,
+    lng: 17.1524,
   },
   {
     id: "ven_nr_01",
@@ -68,6 +76,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_tesco",
     region: "NR",
     isOnline: true,
+    lat: 48.3142,
+    lng: 18.0876,
   },
   {
     id: "ven_nr_02",
@@ -77,6 +87,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_billa",
     region: "NR",
     isOnline: true,
+    lat: 48.3051,
+    lng: 18.0983,
   },
   {
     id: "ven_za_01",
@@ -86,6 +98,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_kaufland",
     region: "ZA",
     isOnline: true,
+    lat: 49.2104,
+    lng: 18.7512,
   },
   {
     id: "ven_za_02",
@@ -95,6 +109,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_tesco",
     region: "ZA",
     isOnline: true,
+    lat: 49.2231,
+    lng: 18.7398,
   },
   {
     id: "ven_ke_01",
@@ -104,6 +120,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_billa",
     region: "KE",
     isOnline: true,
+    lat: 48.7004,
+    lng: 21.2381,
   },
   {
     id: "ven_ke_02",
@@ -113,6 +131,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_lidl",
     region: "KE",
     isOnline: true,
+    lat: 48.7202,
+    lng: 21.2456,
   },
   {
     id: "ven_tt_01",
@@ -122,6 +142,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_tesco",
     region: "TT",
     isOnline: true,
+    lat: 48.3774,
+    lng: 17.5883,
   },
   {
     id: "ven_bb_01",
@@ -131,6 +153,8 @@ export const SEED_VENUES: Venue[] = [
     chainId: "chain_kaufland",
     region: "BB",
     isOnline: true,
+    lat: 48.7361,
+    lng: 19.1462,
   },
 ];
 

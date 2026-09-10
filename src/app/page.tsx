@@ -33,11 +33,11 @@ export default async function HomePage() {
             Mock Massiva API — neskôr ostré napojenie.
           </p>
           <div className="flex flex-wrap gap-2 pt-2">
-            <Link href="/baliky" className="btn btn-primary">
-              Vybrať balík
+            <Link href="/nova-kampan" className="btn btn-primary">
+              Vytvoriť kampaň
             </Link>
             <Link
-              href="/kampane"
+              href="/baliky"
               className="btn"
               style={{
                 background: "rgba(255,255,255,0.12)",
@@ -45,7 +45,7 @@ export default async function HomePage() {
                 borderColor: "rgba(255,255,255,0.25)",
               }}
             >
-              Moje kampane
+              Hotové balíky
             </Link>
           </div>
         </div>

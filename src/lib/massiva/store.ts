@@ -32,6 +32,18 @@ export type MassivaStore = {
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "massiva-store.json");
 
+const venueCoords = Object.fromEntries(
+  SEED_VENUES.map((v) => [v.id, { lat: v.lat, lng: v.lng }]),
+);
+
+function hydrateVenues(venues: Array<Venue & { lat?: number; lng?: number }>): Venue[] {
+  return venues.map((v) => ({
+    ...v,
+    lat: typeof v.lat === "number" ? v.lat : (venueCoords[v.id]?.lat ?? 48.7),
+    lng: typeof v.lng === "number" ? v.lng : (venueCoords[v.id]?.lng ?? 19.5),
+  }));
+}
+
 function emptySeed(): MassivaStore {
   return {
     accounts: [DEMO_ACCOUNT],
@@ -48,7 +60,11 @@ export async function readStore(): Promise<MassivaStore> {
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
     const raw = await fs.readFile(STORE_FILE, "utf8");
-    return JSON.parse(raw) as MassivaStore;
+    const store = JSON.parse(raw) as MassivaStore;
+    store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
+    // Keep seed packages/coords fresh for map builder demos
+    if (!store.packages?.length) store.packages = SEED_PACKAGES;
+    return store;
   } catch {
     const seed = emptySeed();
     await fs.writeFile(STORE_FILE, JSON.stringify(seed, null, 2), "utf8");

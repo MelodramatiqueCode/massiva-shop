@@ -17,8 +17,8 @@ export default async function CampaignsPage() {
             Massiva campaigns — vytvorené e-shopom alebo seed dátami.
           </p>
         </div>
-        <Link href="/baliky" className="btn btn-primary">
-          + Nová objednávka
+        <Link href="/nova-kampan" className="btn btn-primary">
+          + Nová kampaň
         </Link>
       </section>
 

@@ -24,6 +24,8 @@ export type Venue = {
   chainId: MassivaId;
   region: string;
   isOnline: boolean;
+  lat: number;
+  lng: number;
 };
 
 export type Content = {

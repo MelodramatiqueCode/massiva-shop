@@ -19,9 +19,11 @@ Otvor [http://localhost:3000](http://localhost:3000).
 
 ## Tok objednávky
 
-1. Výber balíka (`/baliky`)
-2. Formulár (`/objednat?pkg=…`) → vytvorí **Content** + **Campaign** cez mock
+1. **Nová kampaň** (`/nova-kampan`) — mapa predajní + builder (výber venues, termín, frekvencia, spot)
+2. Alebo hotový balík (`/baliky` → `/objednat`)
 3. Detail kampane + playlogy (`/kampane/[id]`)
+
+Mock cenník custom výberu: 18 € / predajňa / deň pri 2×/hod.
 
 ## Massiva mock
 

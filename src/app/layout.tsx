@@ -34,6 +34,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               MASSIVA<span> Air</span>
             </Link>
             <nav className="flex flex-wrap items-center justify-end gap-2">
+              <Link href="/nova-kampan" className="btn btn-primary">
+                Nová kampaň
+              </Link>
               <Link href="/baliky" className="btn btn-ghost">
                 Balíky
               </Link>
@@ -42,9 +45,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
               <Link href="/kampane" className="btn btn-ghost">
                 Kampane
-              </Link>
-              <Link href="/baliky" className="btn btn-primary">
-                Kúpiť airtime
               </Link>
             </nav>
           </div>
