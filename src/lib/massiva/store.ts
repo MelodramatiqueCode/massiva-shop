@@ -32,8 +32,14 @@ export type MassivaStore = {
   packages: MediaPackage[];
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
+/** On Vercel the repo `data/` dir is gitignored + FS is ephemeral — use /tmp. */
+const DATA_DIR = process.env.VERCEL
+  ? path.join("/tmp", "massiva-shop")
+  : path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "massiva-store.json");
+
+/** Process-local fallback when disk write is unavailable. */
+let memoryStore: MassivaStore | null = null;
 
 const venueById = Object.fromEntries(SEED_VENUES.map((v) => [v.id, v]));
 const contractById = Object.fromEntries(SEED_CONTRACTS.map((c) => [c.id, c]));
@@ -112,39 +118,67 @@ function emptySeed(): MassivaStore {
   };
 }
 
+function normalizeStore(store: MassivaStore): MassivaStore {
+  store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
+  store.accounts = store.accounts?.length
+    ? store.accounts.map((a) =>
+        a.id === DEMO_ACCOUNT.id ? { ...DEMO_ACCOUNT, ...a } : a,
+      )
+    : [DEMO_ACCOUNT];
+  store.contracts = hydrateContracts(store.contracts);
+  store.packages = SEED_PACKAGES.map((pkg) => {
+    const existing = (store.packages ?? []).find((p) => p.id === pkg.id);
+    return existing
+      ? {
+          ...pkg,
+          ...existing,
+          discountPct: pkg.discountPct ?? existing.discountPct,
+        }
+      : pkg;
+  });
+  store.contents = store.contents?.length ? store.contents : SEED_CONTENTS;
+  store.campaigns = store.campaigns?.length ? store.campaigns : SEED_CAMPAIGNS;
+  store.playlogs = store.playlogs?.length ? store.playlogs : buildSeedPlaylogs();
+  store.chains = store.chains?.length ? store.chains : SEED_CHAINS;
+  return store;
+}
+
 export async function readStore(): Promise<MassivaStore> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
+  if (memoryStore) {
+    return normalizeStore(structuredClone(memoryStore));
+  }
+
   try {
     const raw = await fs.readFile(STORE_FILE, "utf8");
-    const store = JSON.parse(raw) as MassivaStore;
-    store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
-    store.accounts = store.accounts?.length
-      ? store.accounts.map((a) =>
-          a.id === DEMO_ACCOUNT.id ? { ...DEMO_ACCOUNT, ...a } : a,
-        )
-      : [DEMO_ACCOUNT];
-    store.contracts = hydrateContracts(store.contracts);
-    store.packages = SEED_PACKAGES.map((pkg) => {
-      const existing = (store.packages ?? []).find((p) => p.id === pkg.id);
-      return existing
-        ? {
-            ...pkg,
-            ...existing,
-            discountPct: pkg.discountPct ?? existing.discountPct,
-          }
-        : pkg;
-    });
+    const store = normalizeStore(JSON.parse(raw) as MassivaStore);
+    memoryStore = structuredClone(store);
     return store;
   } catch {
     const seed = emptySeed();
-    await fs.writeFile(STORE_FILE, JSON.stringify(seed, null, 2), "utf8");
+    memoryStore = structuredClone(seed);
+    try {
+      await fs.mkdir(DATA_DIR, { recursive: true });
+      await fs.writeFile(STORE_FILE, JSON.stringify(seed, null, 2), "utf8");
+    } catch {
+      // Serverless / read-only FS — keep memory only
+    }
     return seed;
   }
 }
 
 export async function writeStore(store: MassivaStore): Promise<void> {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(STORE_FILE, JSON.stringify(store, null, 2), "utf8");
+  const normalized = normalizeStore(store);
+  memoryStore = structuredClone(normalized);
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    await fs.writeFile(
+      STORE_FILE,
+      JSON.stringify(normalized, null, 2),
+      "utf8",
+    );
+  } catch {
+    // Persist in memory for this instance
+  }
 }
 
 export function newId(prefix: string): string {
