@@ -5,9 +5,23 @@ import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import ffmpegStatic from "ffmpeg-static";
-import { getBedById } from "./beds-catalog";
+import {
+  BED_FADE_IN_SEC,
+  BED_FADE_OUT_SEC,
+  BED_LEAD_SEC,
+  BED_TAIL_SEC,
+  getBedById,
+} from "./beds-catalog";
 
-export { BED_CATALOG, getBedById, type BedOption } from "./beds-catalog";
+export {
+  BED_CATALOG,
+  BED_FADE_IN_SEC,
+  BED_FADE_OUT_SEC,
+  BED_LEAD_SEC,
+  BED_TAIL_SEC,
+  getBedById,
+  type BedOption,
+} from "./beds-catalog";
 
 const execFileAsync = promisify(execFile);
 
@@ -16,15 +30,54 @@ function resolveFfmpeg(): string {
   return "ffmpeg";
 }
 
+async function probeDurationSec(ffmpeg: string, filePath: string): Promise<number> {
+  // ffprobe is usually next to ffmpeg-static binary; fall back to parsing ffmpeg -i
+  const ffprobe = ffmpeg.replace(/ffmpeg$/, "ffprobe");
+  try {
+    const { stdout } = await execFileAsync(
+      ffprobe,
+      [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        filePath,
+      ],
+      { timeout: 15_000 },
+    );
+    const n = Number.parseFloat(stdout.trim());
+    if (Number.isFinite(n) && n > 0) return n;
+  } catch {
+    /* fall through */
+  }
+
+  try {
+    await execFileAsync(ffmpeg, ["-i", filePath], { timeout: 15_000 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const m = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/.exec(msg);
+    if (m) {
+      const h = Number(m[1]);
+      const min = Number(m[2]);
+      const sec = Number(m[3]);
+      return h * 3600 + min * 60 + sec;
+    }
+  }
+  return 15;
+}
+
 /**
- * Mixuje TTS hlas s podkladom. Dĺžka = hlas, podklad loopovaný a stíšený.
+ * Mixuje TTS hlas s podkladom.
+ * Podmaz začína skôr a končí neskôr než hlas, s pomalým fade-in/out.
  * bedVolumeDb: typicky -22 až -12 (nižšie = tichší podklad).
  */
 export async function mixVoiceWithBed(
   voiceMp3: Buffer,
   bedId: string,
   bedVolumeDb = -18,
-): Promise<Buffer> {
+): Promise<{ buffer: Buffer; durationSec: number }> {
   const bed = getBedById(bedId);
   if (!bed) {
     throw new Error(`Neznámy podklad: ${bedId}`);
@@ -50,10 +103,23 @@ export async function mixVoiceWithBed(
 
   const vol = Math.max(-40, Math.min(-6, bedVolumeDb));
   const ffmpeg = resolveFfmpeg();
+  const voiceDur = await probeDurationSec(ffmpeg, voicePath);
+  const lead = BED_LEAD_SEC;
+  const tail = BED_TAIL_SEC;
+  const fadeIn = BED_FADE_IN_SEC;
+  const fadeOut = BED_FADE_OUT_SEC;
+  const total = lead + voiceDur + tail;
+  const fadeOutStart = Math.max(0, total - fadeOut);
 
+  // Voice: silence lead + voice + silence tail
+  // Bed: looped, trimmed to total, volume, slow fade in/out
   const filter = [
-    `[1:a]volume=${vol}dB,afade=t=in:st=0:d=0.4[bed]`,
-    `[0:a][bed]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`,
+    `[0:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,asetpts=PTS-STARTPTS[vraw]`,
+    `anullsrc=r=44100:cl=stereo,atrim=0:${lead.toFixed(3)},asetpts=PTS-STARTPTS[silpre]`,
+    `anullsrc=r=44100:cl=stereo,atrim=0:${tail.toFixed(3)},asetpts=PTS-STARTPTS[silpost]`,
+    `[silpre][vraw][silpost]concat=n=3:v=0:a=1[voice]`,
+    `[1:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${vol}dB,afade=t=in:st=0:d=${fadeIn.toFixed(3)},afade=t=out:st=${fadeOutStart.toFixed(3)}:d=${fadeOut.toFixed(3)},atrim=0:${total.toFixed(3)},asetpts=PTS-STARTPTS[bed]`,
+    `[voice][bed]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[aout]`,
   ].join(";");
 
   try {
@@ -75,16 +141,16 @@ export async function mixVoiceWithBed(
         "libmp3lame",
         "-b:a",
         "192k",
-        "-shortest",
         outPath,
       ],
-      { timeout: 60_000, maxBuffer: 10 * 1024 * 1024 },
+      { timeout: 90_000, maxBuffer: 20 * 1024 * 1024 },
     );
 
-    return await readFile(outPath);
+    const buffer = await readFile(outPath);
+    return { buffer, durationSec: Math.round(total) };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    throw new Error(`Mixovanie podkladu zlyhalo: ${msg.slice(0, 200)}`);
+    throw new Error(`Mixovanie podkladu zlyhalo: ${msg.slice(0, 280)}`);
   } finally {
     await rm(workDir, { recursive: true, force: true }).catch(() => undefined);
   }

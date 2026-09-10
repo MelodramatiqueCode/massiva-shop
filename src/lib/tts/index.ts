@@ -70,7 +70,8 @@ export async function generateSpotAudio(input: {
 
   return {
     ...audio,
-    dataUrl: bufferToMp3DataUrl(mixed),
+    dataUrl: bufferToMp3DataUrl(mixed.buffer),
     filename: `spot-bed-${bed.id}-${stamp}.mp3`,
+    durationSec: mixed.durationSec,
   };
 }

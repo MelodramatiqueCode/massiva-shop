@@ -19,27 +19,18 @@ export const BED_CATALOG: BedOption[] = [
     description: "Promo bed ~22 s",
     file: "podmaz-2.mp3",
   },
-  {
-    id: "soft",
-    name: "Soft pad",
-    description: "Jemné ambientné plochy",
-    file: "soft.mp3",
-  },
-  {
-    id: "warm",
-    name: "Warm lounge",
-    description: "Teplejší lounge atmosféra",
-    file: "warm.mp3",
-  },
-  {
-    id: "pulse",
-    name: "Soft pulse",
-    description: "Jemný rytmus bez vokálu",
-    file: "pulse.mp3",
-  },
 ];
 
 export function getBedById(id: string | undefined | null): BedOption | null {
   if (!id) return null;
   return BED_CATALOG.find((b) => b.id === id) ?? null;
 }
+
+/** Bed alone before voice starts. */
+export const BED_LEAD_SEC = 1.5;
+/** Bed alone after voice ends. */
+export const BED_TAIL_SEC = 2.0;
+/** Slow fade-in of bed. */
+export const BED_FADE_IN_SEC = 1.5;
+/** Slow fade-out of bed. */
+export const BED_FADE_OUT_SEC = 2.5;
