@@ -33,6 +33,8 @@ export function hasActiveTtsAuth(): boolean {
 export async function generateSpotAudio(input: {
   text: string;
   voice?: string;
+  /** ElevenLabs model id (v2 / v3). Ignorované pri gateway. */
+  model?: string | null;
   bedId?: string | null;
   /** Hlasitosť podkladu v dB (typicky -22 … -12). Default -18. */
   bedVolumeDb?: number;
@@ -48,6 +50,7 @@ export async function generateSpotAudio(input: {
     audio = await generateSpotViaElevenLabs({
       text: input.text,
       voiceId: input.voice,
+      model: input.model,
     });
   }
 

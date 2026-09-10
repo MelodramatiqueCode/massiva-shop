@@ -44,7 +44,7 @@ REST náhľad:
 
 ## Spot TTS
 
-Default provider: **ElevenLabs** (`eleven_multilingual_v2`, SK).
+Default provider: **ElevenLabs**. V UI vieš vybrať **Multilingual v2** alebo **Eleven v3** (V3 posiela `language_code=sk`).
 
 Env (Vercel → Project → Settings → Environment Variables):
 
@@ -52,13 +52,14 @@ Env (Vercel → Project → Settings → Environment Variables):
 ELEVENLABS_API_KEY=...
 # optional:
 # ELEVENLABS_VOICE_ID=8DN33ptiiwyivln5PvDi
+# ELEVENLABS_MODEL=eleven_multilingual_v2   # default ak UI nepošle model; môže byť eleven_v3
 # TTS_PROVIDER=elevenlabs   # or gateway
 # AI_GATEWAY_API_KEY=...    # only if TTS_PROVIDER=gateway
 ```
 
 Po nastavení env **Redeploy**.
 
-UI: `/nova-kampan` a `/objednat` → text → hlas → Vygenerovať audio → objednávka.
+UI: `/nova-kampan` a `/objednat` → text → model → hlas → podmaz → Vygenerovať audio → objednávka.
 
 ## Poznámka
 

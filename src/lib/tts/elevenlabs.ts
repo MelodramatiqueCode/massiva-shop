@@ -23,8 +23,32 @@ export const ELEVENLABS_VOICES: TtsVoiceOption[] = [
 export const DEFAULT_ELEVENLABS_VOICE =
   process.env.ELEVENLABS_VOICE_ID || "8DN33ptiiwyivln5PvDi";
 
+/** Povolené TTS modely (SK: v2 + v3). */
+export const ELEVENLABS_MODELS = [
+  {
+    id: "eleven_multilingual_v2",
+    label: "Multilingual v2",
+    hint: "Stabilný, overený pre spoty",
+  },
+  {
+    id: "eleven_v3",
+    label: "Eleven v3",
+    hint: "Expresívnejší, SK cez language_code",
+  },
+] as const;
+
+export type ElevenLabsModelId = (typeof ELEVENLABS_MODELS)[number]["id"];
+
 export const ELEVENLABS_MODEL =
   process.env.ELEVENLABS_MODEL || "eleven_multilingual_v2";
+
+export function resolveElevenLabsModel(
+  requested?: string | null,
+): ElevenLabsModelId {
+  const raw = (requested || ELEVENLABS_MODEL || "").trim();
+  const found = ELEVENLABS_MODELS.find((m) => m.id === raw);
+  return found?.id ?? "eleven_multilingual_v2";
+}
 
 export function hasElevenLabsAuth(): boolean {
   return Boolean(process.env.ELEVENLABS_API_KEY);
@@ -33,6 +57,7 @@ export function hasElevenLabsAuth(): boolean {
 export async function generateSpotViaElevenLabs(input: {
   text: string;
   voiceId?: string;
+  model?: string | null;
 }): Promise<GeneratedSpotAudio> {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
@@ -43,7 +68,30 @@ export async function generateSpotViaElevenLabs(input: {
 
   const text = assertSpotScript(input.text);
   const voiceId = input.voiceId || DEFAULT_ELEVENLABS_VOICE;
-  const model = ELEVENLABS_MODEL;
+  const model = resolveElevenLabsModel(input.model);
+  const isV3 = model === "eleven_v3";
+
+  const body: Record<string, unknown> = {
+    text,
+    model_id: model,
+    voice_settings: isV3
+      ? {
+          // V3: vyššia stabilita = menej „divoký“ výkon — vhodné pre spoty
+          stability: 0.5,
+          similarity_boost: 0.75,
+        }
+      : {
+          stability: 0.45,
+          similarity_boost: 0.75,
+          style: 0.15,
+          use_speaker_boost: true,
+        },
+  };
+
+  // language_code funguje na V3 (nie na multilingual_v2)
+  if (isV3) {
+    body.language_code = "sk";
+  }
 
   const res = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voiceId)}`,
@@ -54,16 +102,7 @@ export async function generateSpotViaElevenLabs(input: {
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
-      body: JSON.stringify({
-        text,
-        model_id: model,
-        voice_settings: {
-          stability: 0.45,
-          similarity_boost: 0.75,
-          style: 0.15,
-          use_speaker_boost: true,
-        },
-      }),
+      body: JSON.stringify(body),
     },
   );
 

@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       text?: string;
       voice?: string;
+      model?: string | null;
       bedId?: string | null;
       bedVolumeDb?: number;
     };
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     const audio = await generateSpotAudio({
       text,
       voice: body.voice,
+      model: body.model || null,
       bedId: body.bedId || null,
       bedVolumeDb,
     });

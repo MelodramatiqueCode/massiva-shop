@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import {
+  ELEVENLABS_MODELS,
   ELEVENLABS_VOICES,
+  type ElevenLabsModelId,
 } from "@/lib/tts/elevenlabs";
 import { TTS_VOICES as GATEWAY_VOICES } from "@/lib/tts/gateway";
 import { BED_CATALOG } from "@/lib/tts/beds-catalog";
@@ -34,6 +36,7 @@ export function SpotTtsPanel({
   );
   const [script, setScript] = useState(defaultScript);
   const [voice, setVoice] = useState(voices[0]?.id ?? "");
+  const [model, setModel] = useState<ElevenLabsModelId>("eleven_multilingual_v2");
   const [bedEnabled, setBedEnabled] = useState(true);
   const [bedId, setBedId] = useState(BED_CATALOG[0]?.id ?? "soft");
   /** UI: 0–100 → mapuje na ~−28 … −10 dB */
@@ -59,6 +62,7 @@ export function SpotTtsPanel({
         body: JSON.stringify({
           text: script,
           voice,
+          model: providerHint === "elevenlabs" ? model : undefined,
           bedId: bedEnabled ? bedId : null,
           bedVolumeDb: bedEnabled ? bedVolumeDbFromLevel(bedLevel) : undefined,
         }),
@@ -85,8 +89,13 @@ export function SpotTtsPanel({
     }
   }
 
+  const modelMeta = ELEVENLABS_MODELS.find((m) => m.id === model);
   const badge =
-    providerHint === "gateway" ? "openai/tts-1" : "elevenlabs · multilingual v2";
+    providerHint === "gateway"
+      ? "openai/tts-1"
+      : model === "eleven_v3"
+        ? "elevenlabs · v3"
+        : "elevenlabs · multilingual v2";
 
   return (
     <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[rgba(7,21,18,0.03)] p-4">
@@ -114,12 +123,33 @@ export function SpotTtsPanel({
           Cieľ ~15–30 s. Provider:{" "}
           {providerHint === "gateway"
             ? "Vercel AI Gateway"
-            : "ElevenLabs (SK cez multilingual v2)"}
+            : `ElevenLabs · ${modelMeta?.label ?? model}`}
           .
+          {providerHint === "elevenlabs" && model === "eleven_v3"
+            ? " V3 používa language_code=sk."
+            : null}
         </p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
+        {providerHint === "elevenlabs" ? (
+          <div className="field">
+            <label htmlFor="ttsModel">Model</label>
+            <select
+              id="ttsModel"
+              name="ttsModel"
+              value={model}
+              onChange={(e) => setModel(e.target.value as ElevenLabsModelId)}
+              disabled={disabled || loading}
+            >
+              {ELEVENLABS_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label} — {m.hint}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
         <div className="field">
           <label htmlFor="ttsVoice">Hlas</label>
           <select
@@ -136,7 +166,9 @@ export function SpotTtsPanel({
             ))}
           </select>
         </div>
-        <div className="flex items-end">
+        <div
+          className={`flex items-end ${providerHint === "elevenlabs" ? "md:col-span-2" : ""}`}
+        >
           <button
             type="button"
             className="btn btn-ghost w-full"
@@ -213,6 +245,7 @@ export function SpotTtsPanel({
           <audio controls src={audio.dataUrl} className="w-full" />
           <p className="text-xs text-[var(--ink-soft)]">
             {audio.filename} · ~{audio.durationSec}s · {audio.voice}
+            {audio.model ? ` · ${audio.model}` : ""}
             {audio.provider ? ` · ${audio.provider}` : ""}
             {bedEnabled ? ` · podmaz ${bedId}` : ""}
           </p>
