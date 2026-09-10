@@ -1,0 +1,254 @@
+import type {
+  Account,
+  Campaign,
+  Chain,
+  Content,
+  MediaPackage,
+  Playlog,
+  Venue,
+} from "./types";
+
+export const DEMO_ACCOUNT: Account = {
+  id: "acc_demo",
+  name: "Demo Inzerent",
+  email: "demo@example.com",
+  company: "Demo Brand s.r.o.",
+  createdAt: "2026-01-01T10:00:00.000Z",
+};
+
+export const SEED_CHAINS: Chain[] = [
+  { id: "chain_tesco", name: "Tesco", venueCount: 8 },
+  { id: "chain_billa", name: "Billa", venueCount: 6 },
+  { id: "chain_kaufland", name: "Kaufland", venueCount: 5 },
+  { id: "chain_lidl", name: "Lidl", venueCount: 4 },
+];
+
+export const SEED_VENUES: Venue[] = [
+  {
+    id: "ven_ba_01",
+    name: "Tesco Bratislava Aupark",
+    city: "Bratislava",
+    address: "Einsteinova 18",
+    chainId: "chain_tesco",
+    region: "BA",
+    isOnline: true,
+  },
+  {
+    id: "ven_ba_02",
+    name: "Billa Bratislava Centrum",
+    city: "Bratislava",
+    address: "Obchodná 12",
+    chainId: "chain_billa",
+    region: "BA",
+    isOnline: true,
+  },
+  {
+    id: "ven_ba_03",
+    name: "Kaufland Bratislava Petržalka",
+    city: "Bratislava",
+    address: "Panónska cesta 16",
+    chainId: "chain_kaufland",
+    region: "BA",
+    isOnline: true,
+  },
+  {
+    id: "ven_ba_04",
+    name: "Lidl Bratislava Ružinov",
+    city: "Bratislava",
+    address: "Tomášikova 50",
+    chainId: "chain_lidl",
+    region: "BA",
+    isOnline: false,
+  },
+  {
+    id: "ven_nr_01",
+    name: "Tesco Nitra City",
+    city: "Nitra",
+    address: "Akademická 1",
+    chainId: "chain_tesco",
+    region: "NR",
+    isOnline: true,
+  },
+  {
+    id: "ven_nr_02",
+    name: "Billa Nitra Chrenová",
+    city: "Nitra",
+    address: "Štefánikova 44",
+    chainId: "chain_billa",
+    region: "NR",
+    isOnline: true,
+  },
+  {
+    id: "ven_za_01",
+    name: "Kaufland Žilina",
+    city: "Žilina",
+    address: "Vysokoškolákov 32",
+    chainId: "chain_kaufland",
+    region: "ZA",
+    isOnline: true,
+  },
+  {
+    id: "ven_za_02",
+    name: "Tesco Žilina Aupark",
+    city: "Žilina",
+    address: "Veľká okružná 59A",
+    chainId: "chain_tesco",
+    region: "ZA",
+    isOnline: true,
+  },
+  {
+    id: "ven_ke_01",
+    name: "Billa Košice Optima",
+    city: "Košice",
+    address: "Moldavská cesta 32",
+    chainId: "chain_billa",
+    region: "KE",
+    isOnline: true,
+  },
+  {
+    id: "ven_ke_02",
+    name: "Lidl Košice Terasa",
+    city: "Košice",
+    address: "Trieda SNP 8",
+    chainId: "chain_lidl",
+    region: "KE",
+    isOnline: true,
+  },
+  {
+    id: "ven_tt_01",
+    name: "Tesco Trnava",
+    city: "Trnava",
+    address: "Hlavná 1",
+    chainId: "chain_tesco",
+    region: "TT",
+    isOnline: true,
+  },
+  {
+    id: "ven_bb_01",
+    name: "Kaufland Banská Bystrica",
+    city: "Banská Bystrica",
+    address: "Na Troskách 25",
+    chainId: "chain_kaufland",
+    region: "BB",
+    isOnline: true,
+  },
+];
+
+export const SEED_PACKAGES: MediaPackage[] = [
+  {
+    id: "pkg_ba",
+    name: "Bratislava Pulse",
+    tagline: "4 silné predajne v BA — maximálny footfall.",
+    region: "BA",
+    venueIds: ["ven_ba_01", "ven_ba_02", "ven_ba_03", "ven_ba_04"],
+    playsPerHour: 4,
+    pricePerDayEur: 89,
+    minDays: 7,
+    featured: true,
+  },
+  {
+    id: "pkg_west",
+    name: "Západný koridor",
+    tagline: "BA + Nitra + Trnava — pokrytie západu.",
+    region: "Západ",
+    venueIds: [
+      "ven_ba_01",
+      "ven_ba_02",
+      "ven_nr_01",
+      "ven_nr_02",
+      "ven_tt_01",
+    ],
+    playsPerHour: 3,
+    pricePerDayEur: 129,
+    minDays: 7,
+    featured: true,
+  },
+  {
+    id: "pkg_north",
+    name: "Sever",
+    tagline: "Žilina a okolie — regionálny zásah.",
+    region: "ZA",
+    venueIds: ["ven_za_01", "ven_za_02"],
+    playsPerHour: 3,
+    pricePerDayEur: 49,
+    minDays: 5,
+  },
+  {
+    id: "pkg_east",
+    name: "Východ",
+    tagline: "Košice — druhý najsilnejší trh.",
+    region: "KE",
+    venueIds: ["ven_ke_01", "ven_ke_02"],
+    playsPerHour: 3,
+    pricePerDayEur: 59,
+    minDays: 5,
+  },
+  {
+    id: "pkg_national",
+    name: "Celá sieť",
+    tagline: "Všetky predajne naraz — nationwide airtime.",
+    region: "SK",
+    venueIds: SEED_VENUES.map((v) => v.id),
+    playsPerHour: 2,
+    pricePerDayEur: 249,
+    minDays: 14,
+    featured: true,
+  },
+];
+
+export const SEED_CONTENTS: Content[] = [
+  {
+    id: "cnt_sample",
+    name: "Ukážkový spot 30s",
+    filename: "demo-spot-30s.mp3",
+    durationSec: 30,
+    accountId: DEMO_ACCOUNT.id,
+    createdAt: "2026-03-01T12:00:00.000Z",
+    storageKey: "mock://demo-spot-30s.mp3",
+  },
+];
+
+const now = Date.now();
+
+export const SEED_CAMPAIGNS: Campaign[] = [
+  {
+    id: "cmp_live_demo",
+    name: "Jarná akcia — BA Pulse",
+    accountId: DEMO_ACCOUNT.id,
+    contentId: "cnt_sample",
+    venueIds: ["ven_ba_01", "ven_ba_02", "ven_ba_03"],
+    chainIds: ["chain_tesco", "chain_billa", "chain_kaufland"],
+    status: "live",
+    startsAt: new Date(now - 3 * 86400000).toISOString(),
+    endsAt: new Date(now + 11 * 86400000).toISOString(),
+    playsPerHour: 4,
+    timetable: [
+      { dayOfWeek: 0, startMinute: 8 * 60, endMinute: 21 * 60 },
+      { dayOfWeek: 1, startMinute: 8 * 60, endMinute: 21 * 60 },
+      { dayOfWeek: 2, startMinute: 8 * 60, endMinute: 21 * 60 },
+      { dayOfWeek: 3, startMinute: 8 * 60, endMinute: 21 * 60 },
+      { dayOfWeek: 4, startMinute: 8 * 60, endMinute: 21 * 60 },
+      { dayOfWeek: 5, startMinute: 8 * 60, endMinute: 20 * 60 },
+      { dayOfWeek: 6, startMinute: 9 * 60, endMinute: 18 * 60 },
+    ],
+    packageId: "pkg_ba",
+    totalPriceEur: 89 * 14,
+    createdAt: new Date(now - 5 * 86400000).toISOString(),
+    updatedAt: new Date(now - 86400000).toISOString(),
+  },
+];
+
+export function buildSeedPlaylogs(): Playlog[] {
+  const logs: Playlog[] = [];
+  const venues = ["ven_ba_01", "ven_ba_02", "ven_ba_03"];
+  for (let i = 0; i < 36; i++) {
+    logs.push({
+      id: `pl_${i}`,
+      campaignId: "cmp_live_demo",
+      contentId: "cnt_sample",
+      venueId: venues[i % venues.length],
+      playedAt: new Date(now - i * 45 * 60000).toISOString(),
+    });
+  }
+  return logs;
+}

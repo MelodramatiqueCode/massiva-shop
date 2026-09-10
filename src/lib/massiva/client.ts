@@ -1,0 +1,262 @@
+import { newId, readStore, writeStore } from "./store";
+import type {
+  Account,
+  Campaign,
+  Chain,
+  Content,
+  CreateCampaignInput,
+  CreateContentInput,
+  MediaPackage,
+  Playlog,
+  SearchQuery,
+  UpdateCampaignInput,
+  Venue,
+  VenueDayOccupancy,
+} from "./types";
+
+/**
+ * Massiva client — mock implementation.
+ * Swap for HTTP when MASSIVA_API_URL is available; keep this method surface.
+ */
+export type MassivaClient = {
+  getAccounts(): Promise<Account[]>;
+  searchAccounts(query: SearchQuery): Promise<Account[]>;
+  getAccount(id: string): Promise<Account | null>;
+
+  getCampaigns(): Promise<Campaign[]>;
+  searchCampaigns(query: SearchQuery): Promise<Campaign[]>;
+  getCampaign(id: string): Promise<Campaign | null>;
+  createCampaign(input: CreateCampaignInput): Promise<Campaign>;
+  updateCampaign(
+    id: string,
+    input: UpdateCampaignInput,
+  ): Promise<Campaign | null>;
+
+  getChains(): Promise<Chain[]>;
+  searchChains(query: SearchQuery): Promise<Chain[]>;
+  getChain(id: string): Promise<Chain | null>;
+
+  getContents(): Promise<Content[]>;
+  searchContents(query: SearchQuery): Promise<Content[]>;
+  getContent(id: string): Promise<Content | null>;
+  createContent(input: CreateContentInput): Promise<Content>;
+  updateContent(id: string, input: Partial<Content>): Promise<Content | null>;
+  deleteContent(id: string): Promise<boolean>;
+  getContentAudio(id: string): Promise<{ url: string } | null>;
+
+  getPlaylogs(): Promise<Playlog[]>;
+  searchPlaylogs(query: SearchQuery): Promise<Playlog[]>;
+  getPlaylog(id: string): Promise<Playlog | null>;
+
+  getVenues(): Promise<Venue[]>;
+  searchVenues(query: SearchQuery): Promise<Venue[]>;
+  getVenue(id: string): Promise<Venue | null>;
+  getVenueOptions(): Promise<{ regions: string[]; cities: string[] }>;
+
+  getPackages(): Promise<MediaPackage[]>;
+  getPackage(id: string): Promise<MediaPackage | null>;
+  getVenueOccupancy(venueId: string, date: string): Promise<VenueDayOccupancy>;
+};
+
+function matchQ<T extends object>(
+  items: T[],
+  q: string | undefined,
+  fields: (keyof T)[],
+) {
+  if (!q?.trim()) return items;
+  const needle = q.trim().toLowerCase();
+  return items.filter((item) =>
+    fields.some((f) => String(item[f] ?? "").toLowerCase().includes(needle)),
+  );
+}
+
+export const mockMassiva: MassivaClient = {
+  async getAccounts() {
+    return (await readStore()).accounts;
+  },
+  async searchAccounts(query) {
+    return matchQ(await this.getAccounts(), query.q, [
+      "name",
+      "email",
+      "company",
+    ]);
+  },
+  async getAccount(id) {
+    return (await this.getAccounts()).find((a) => a.id === id) ?? null;
+  },
+
+  async getCampaigns() {
+    const store = await readStore();
+    return [...store.campaigns].sort(
+      (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
+    );
+  },
+  async searchCampaigns(query) {
+    let list = await this.getCampaigns();
+    if (query.accountId)
+      list = list.filter((c) => c.accountId === query.accountId);
+    if (query.status) list = list.filter((c) => c.status === query.status);
+    return matchQ(list, query.q, ["name", "id"]);
+  },
+  async getCampaign(id) {
+    return (await this.getCampaigns()).find((c) => c.id === id) ?? null;
+  },
+  async createCampaign(input) {
+    const store = await readStore();
+    const now = new Date().toISOString();
+    const campaign: Campaign = {
+      id: newId("cmp"),
+      name: input.name,
+      accountId: input.accountId,
+      contentId: input.contentId,
+      venueIds: input.venueIds,
+      chainIds: input.chainIds ?? [],
+      status: input.status ?? "scheduled",
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      playsPerHour: input.playsPerHour,
+      timetable: input.timetable ?? [
+        { dayOfWeek: 0, startMinute: 480, endMinute: 1260 },
+        { dayOfWeek: 1, startMinute: 480, endMinute: 1260 },
+        { dayOfWeek: 2, startMinute: 480, endMinute: 1260 },
+        { dayOfWeek: 3, startMinute: 480, endMinute: 1260 },
+        { dayOfWeek: 4, startMinute: 480, endMinute: 1260 },
+        { dayOfWeek: 5, startMinute: 480, endMinute: 1200 },
+        { dayOfWeek: 6, startMinute: 540, endMinute: 1080 },
+      ],
+      packageId: input.packageId,
+      totalPriceEur: input.totalPriceEur,
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.campaigns.unshift(campaign);
+    await writeStore(store);
+    return campaign;
+  },
+  async updateCampaign(id, input) {
+    const store = await readStore();
+    const idx = store.campaigns.findIndex((c) => c.id === id);
+    if (idx < 0) return null;
+    store.campaigns[idx] = {
+      ...store.campaigns[idx],
+      ...input,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeStore(store);
+    return store.campaigns[idx];
+  },
+
+  async getChains() {
+    return (await readStore()).chains;
+  },
+  async searchChains(query) {
+    return matchQ(await this.getChains(), query.q, ["name"]);
+  },
+  async getChain(id) {
+    return (await this.getChains()).find((c) => c.id === id) ?? null;
+  },
+
+  async getContents() {
+    return (await readStore()).contents;
+  },
+  async searchContents(query) {
+    let list = await this.getContents();
+    if (query.accountId)
+      list = list.filter((c) => c.accountId === query.accountId);
+    return matchQ(list, query.q, ["name", "filename"]);
+  },
+  async getContent(id) {
+    return (await this.getContents()).find((c) => c.id === id) ?? null;
+  },
+  async createContent(input) {
+    const store = await readStore();
+    const content: Content = {
+      id: newId("cnt"),
+      name: input.name,
+      filename: input.filename,
+      durationSec: input.durationSec,
+      accountId: input.accountId,
+      createdAt: new Date().toISOString(),
+      storageKey: input.storageKey ?? `mock://${input.filename}`,
+    };
+    store.contents.unshift(content);
+    await writeStore(store);
+    return content;
+  },
+  async updateContent(id, input) {
+    const store = await readStore();
+    const idx = store.contents.findIndex((c) => c.id === id);
+    if (idx < 0) return null;
+    store.contents[idx] = { ...store.contents[idx], ...input };
+    await writeStore(store);
+    return store.contents[idx];
+  },
+  async deleteContent(id) {
+    const store = await readStore();
+    const before = store.contents.length;
+    store.contents = store.contents.filter((c) => c.id !== id);
+    await writeStore(store);
+    return store.contents.length < before;
+  },
+  async getContentAudio(id) {
+    const content = await this.getContent(id);
+    if (!content) return null;
+    return { url: content.storageKey };
+  },
+
+  async getPlaylogs() {
+    const store = await readStore();
+    return [...store.playlogs].sort(
+      (a, b) => +new Date(b.playedAt) - +new Date(a.playedAt),
+    );
+  },
+  async searchPlaylogs(query) {
+    let list = await this.getPlaylogs();
+    if (query.campaignId) {
+      list = list.filter((p) => p.campaignId === query.campaignId);
+    }
+    if (query.venueId) list = list.filter((p) => p.venueId === query.venueId);
+    return list.slice(0, query.limit ?? 100);
+  },
+  async getPlaylog(id) {
+    return (await this.getPlaylogs()).find((p) => p.id === id) ?? null;
+  },
+
+  async getVenues() {
+    return (await readStore()).venues;
+  },
+  async searchVenues(query) {
+    let list = await this.getVenues();
+    if (query.chainId) list = list.filter((v) => v.chainId === query.chainId);
+    return matchQ(list, query.q, ["name", "city", "address", "region"]);
+  },
+  async getVenue(id) {
+    return (await this.getVenues()).find((v) => v.id === id) ?? null;
+  },
+  async getVenueOptions() {
+    const venues = await this.getVenues();
+    return {
+      regions: [...new Set(venues.map((v) => v.region))].sort(),
+      cities: [...new Set(venues.map((v) => v.city))].sort(),
+    };
+  },
+
+  async getPackages() {
+    return (await readStore()).packages;
+  },
+  async getPackage(id) {
+    return (await this.getPackages()).find((p) => p.id === id) ?? null;
+  },
+  async getVenueOccupancy(venueId, date) {
+    return {
+      venueId,
+      date,
+      occupiedSlots: 12,
+      totalSlots: 40,
+    };
+  },
+};
+
+export function getMassivaClient(): MassivaClient {
+  return mockMassiva;
+}
