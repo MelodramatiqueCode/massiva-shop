@@ -19,11 +19,14 @@ Otvor [http://localhost:3000](http://localhost:3000).
 
 ## Tok objednávky
 
-1. **Nová kampaň** (`/nova-kampan`) — mapa predajní + builder (výber venues, termín, frekvencia, spot)
-2. Alebo hotový balík (`/baliky` → `/objednat`)
-3. Detail kampane + playlogy (`/kampane/[id]`)
+1. **Zmluva** (`/zmluvy`) — aktívna mediálna zmluva (zľava + CPP floor)
+2. **Nová kampaň** (`/nova-kampan`) — mapa predajní + builder
+3. Alebo hotový balík (`/baliky` → `/objednat`) — súhlas so zmluvou povinný
+4. Detail kampane + playlogy (`/kampane/[id]`)
 
-Mock cenník custom výberu: 18 € / predajňa / deň pri 2×/hod.
+Bez aktívnej / podpísanej zmluvy je odoslanie objednávky zablokované.
+
+Mock cenník custom výberu: rate engine podľa predajne + daypart/occupancy + zmluva.
 
 ## Massiva mock
 
@@ -36,6 +39,7 @@ REST náhľad:
 - `GET /api/massiva/venues`
 - `GET /api/massiva/campaigns`
 - `GET /api/massiva/packages`
+- `GET /api/massiva/contracts`
 
 ## Poznámka
 

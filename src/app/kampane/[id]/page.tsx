@@ -29,11 +29,14 @@ export default async function CampaignDetailPage({
   const campaign = await api.getCampaign(id);
   if (!campaign) notFound();
 
-  const [content, venues, playlogs, pkg] = await Promise.all([
+  const [content, venues, playlogs, pkg, contract] = await Promise.all([
     api.getContent(campaign.contentId),
     api.getVenues(),
     api.searchPlaylogs({ campaignId: campaign.id, limit: 20 }),
     campaign.packageId ? api.getPackage(campaign.packageId) : Promise.resolve(null),
+    campaign.contractId
+      ? api.getContract(campaign.contractId)
+      : api.getActiveContract(campaign.accountId),
   ]);
 
   const venueMap = Object.fromEntries(venues.map((v) => [v.id, v]));
@@ -49,6 +52,7 @@ export default async function CampaignDetailPage({
     playsPerHour: campaign.playsPerHour,
     timetable: campaign.timetable ?? [],
     account,
+    contract,
     mediaPackage: pkg,
   });
   const totalPrice = campaign.totalPriceEur || quote.totalPriceEur;
@@ -69,6 +73,11 @@ export default async function CampaignDetailPage({
             {STATUS_LABELS[campaign.status] ?? campaign.status}
           </span>
           {pkg ? <span className="chip">{pkg.name}</span> : null}
+          {contract ? (
+            <Link href={`/zmluvy/${contract.id}`} className="chip">
+              {contract.number}
+            </Link>
+          ) : null}
         </div>
         <h1 className="font-[family-name:var(--font-display)] text-4xl font-bold tracking-[-0.04em]">
           {campaign.name}
@@ -135,8 +144,9 @@ export default async function CampaignDetailPage({
             {quote.avgOccupancyMultiplier.toFixed(2)}
           </li>
           <li>
-            5. Zľavy: zmluva {(quote.contractDiscountPct * 100).toFixed(0)}% ·
-            balík {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
+            5. Zľavy: zmluva {(quote.contractDiscountPct * 100).toFixed(0)}%
+            {contract ? ` (${contract.number})` : ""} · balík{" "}
+            {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
             {formatEur(quote.subtotalEur)}
           </li>
         </ul>

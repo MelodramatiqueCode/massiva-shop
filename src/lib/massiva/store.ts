@@ -5,6 +5,7 @@ import {
   SEED_CAMPAIGNS,
   SEED_CHAINS,
   SEED_CONTENTS,
+  SEED_CONTRACTS,
   SEED_PACKAGES,
   SEED_VENUES,
   buildSeedPlaylogs,
@@ -14,6 +15,7 @@ import type {
   Campaign,
   Chain,
   Content,
+  Contract,
   MediaPackage,
   Playlog,
   Venue,
@@ -21,6 +23,7 @@ import type {
 
 export type MassivaStore = {
   accounts: Account[];
+  contracts: Contract[];
   chains: Chain[];
   venues: Venue[];
   contents: Content[];
@@ -33,6 +36,7 @@ const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "massiva-store.json");
 
 const venueById = Object.fromEntries(SEED_VENUES.map((v) => [v.id, v]));
+const contractById = Object.fromEntries(SEED_CONTRACTS.map((c) => [c.id, c]));
 
 function hydrateVenues(
   venues: Array<Partial<Venue> & { id: string }>,
@@ -57,9 +61,48 @@ function hydrateVenues(
   });
 }
 
+function hydrateContracts(
+  contracts: Array<Partial<Contract> & { id: string }> | undefined,
+): Contract[] {
+  const existing = contracts ?? [];
+  const byId = new Map(existing.map((c) => [c.id, c]));
+
+  const merged = SEED_CONTRACTS.map((seed) => {
+    const cur = byId.get(seed.id);
+    if (!cur) return seed;
+    return { ...seed, ...cur, id: seed.id, number: cur.number ?? seed.number };
+  });
+
+  for (const cur of existing) {
+    if (!contractById[cur.id] && !merged.some((m) => m.id === cur.id)) {
+      merged.push({
+        id: cur.id,
+        number: cur.number ?? cur.id,
+        accountId: cur.accountId ?? DEMO_ACCOUNT.id,
+        title: cur.title ?? "Zmluva",
+        status: cur.status ?? "draft",
+        startsAt: cur.startsAt ?? "2026-01-01",
+        endsAt: cur.endsAt ?? "2026-12-31",
+        signedAt: cur.signedAt,
+        contractDiscountPct: cur.contractDiscountPct ?? 0,
+        minCppEur: cur.minCppEur ?? 0,
+        chainIds: cur.chainIds ?? [],
+        venueIds: cur.venueIds ?? [],
+        termsSummary: cur.termsSummary ?? "",
+        documentUrl: cur.documentUrl,
+        createdAt: cur.createdAt ?? new Date().toISOString(),
+        updatedAt: cur.updatedAt ?? new Date().toISOString(),
+      });
+    }
+  }
+
+  return merged;
+}
+
 function emptySeed(): MassivaStore {
   return {
     accounts: [DEMO_ACCOUNT],
+    contracts: SEED_CONTRACTS,
     chains: SEED_CHAINS,
     venues: SEED_VENUES,
     contents: SEED_CONTENTS,
@@ -80,9 +123,16 @@ export async function readStore(): Promise<MassivaStore> {
           a.id === DEMO_ACCOUNT.id ? { ...DEMO_ACCOUNT, ...a } : a,
         )
       : [DEMO_ACCOUNT];
+    store.contracts = hydrateContracts(store.contracts);
     store.packages = SEED_PACKAGES.map((pkg) => {
       const existing = (store.packages ?? []).find((p) => p.id === pkg.id);
-      return existing ? { ...pkg, ...existing, discountPct: pkg.discountPct ?? existing.discountPct } : pkg;
+      return existing
+        ? {
+            ...pkg,
+            ...existing,
+            discountPct: pkg.discountPct ?? existing.discountPct,
+          }
+        : pkg;
     });
     return store;
   } catch {

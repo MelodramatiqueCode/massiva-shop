@@ -1,9 +1,11 @@
 import type {
   Account,
+  Contract,
   MediaPackage,
   TimetableInterval,
   Venue,
 } from "./types";
+import { pricingAccountFromContract } from "./contracts";
 import { calendarDaysInclusive } from "./timetable";
 
 export const BASE_PLAYS_PER_HOUR = 2;
@@ -41,6 +43,8 @@ export type RateEngineInput = {
   playsPerHour: number;
   timetable: TimetableInterval[];
   account?: Account | null;
+  /** Prefer commercial terms from contract when present. */
+  contract?: Contract | null;
   mediaPackage?: MediaPackage | null;
 };
 
@@ -156,6 +160,10 @@ function dailyWindowHours(
  * 5) contract + package discounts
  */
 export function quoteCampaign(input: RateEngineInput): RateEngineQuote {
+  const pricingAccount = pricingAccountFromContract(
+    input.account,
+    input.contract,
+  );
   const playsPerHour = Math.max(1, input.playsPerHour);
   const playFactor = playsPerHour / BASE_PLAYS_PER_HOUR;
   const timetable = input.timetable ?? [];
@@ -217,7 +225,7 @@ export function quoteCampaign(input: RateEngineInput): RateEngineQuote {
 
   const contractDiscountPct = Math.min(
     0.5,
-    Math.max(0, input.account?.contractDiscountPct ?? 0),
+    Math.max(0, pricingAccount?.contractDiscountPct ?? 0),
   );
   const packageDiscountPct = Math.min(
     0.5,
@@ -243,7 +251,7 @@ export function quoteCampaign(input: RateEngineInput): RateEngineQuote {
   }
   estimatedContacts = Math.round(estimatedContacts);
 
-  const minCppEur = input.account?.minCppEur ?? 0;
+  const minCppEur = pricingAccount?.minCppEur ?? 0;
   let cppFloorApplied = false;
   if (estimatedPlays > 0 && minCppEur > 0) {
     const floorTotal = estimatedPlays * minCppEur;
@@ -301,6 +309,7 @@ export function estimateCampaignBreakdown(input: {
   endsAt?: string;
   timetable?: TimetableInterval[];
   account?: Account | null;
+  contract?: Contract | null;
   mediaPackage?: MediaPackage | null;
 }) {
   if (input.venues && input.startsAt && input.endsAt && input.timetable) {
@@ -311,6 +320,7 @@ export function estimateCampaignBreakdown(input: {
       playsPerHour: input.playsPerHour,
       timetable: input.timetable,
       account: input.account,
+      contract: input.contract,
       mediaPackage: input.mediaPackage,
     });
     return {

@@ -35,3 +35,12 @@ export const STATUS_LABELS: Record<string, string> = {
   ended: "Ukončená",
   paused: "Pozastavená",
 };
+
+export const CONTRACT_STATUS_LABELS: Record<string, string> = {
+  draft: "Koncept",
+  sent: "Na podpis",
+  signed: "Podpísaná",
+  active: "Aktívna",
+  expired: "Expirovaná",
+  cancelled: "Zrušená",
+};

@@ -3,6 +3,7 @@ import type {
   Campaign,
   Chain,
   Content,
+  Contract,
   MediaPackage,
   Playlog,
   Venue,
@@ -14,9 +15,50 @@ export const DEMO_ACCOUNT: Account = {
   email: "demo@example.com",
   company: "Demo Brand s.r.o.",
   createdAt: "2026-01-01T10:00:00.000Z",
+  /** Legacy fallback — prefer Contract fields. */
   contractDiscountPct: 0.08,
   minCppEur: 0.12,
 };
+
+export const SEED_CONTRACTS: Contract[] = [
+  {
+    id: "ctr_demo_active",
+    number: "Z-2026-014",
+    accountId: DEMO_ACCOUNT.id,
+    title: "Rámcová mediálna zmluva — Demo Brand",
+    status: "active",
+    startsAt: "2026-01-01",
+    endsAt: "2026-12-31",
+    signedAt: "2026-01-02T14:20:00.000Z",
+    contractDiscountPct: 0.08,
+    minCppEur: 0.12,
+    chainIds: [],
+    venueIds: [],
+    termsSummary:
+      "Rámcová zmluva o vysielaní in-store audio reklamy v sieti Massiva. Cenník podľa aktuálnej rate karty, zľava 8 %, minimálne CPP 0,12 €. Objednávky viazané na platnú zmluvu.",
+    documentUrl: "/zmluvy/ctr_demo_active#dokument",
+    createdAt: "2026-01-01T10:00:00.000Z",
+    updatedAt: "2026-01-02T14:20:00.000Z",
+  },
+  {
+    id: "ctr_demo_sent",
+    number: "Z-2026-022",
+    accountId: DEMO_ACCOUNT.id,
+    title: "Dodatok — sieť Tesco (návrh)",
+    status: "sent",
+    startsAt: "2026-04-01",
+    endsAt: "2026-12-31",
+    contractDiscountPct: 0.12,
+    minCppEur: 0.1,
+    chainIds: ["chain_tesco"],
+    venueIds: [],
+    termsSummary:
+      "Návrh dodatku so zľavou 12 % pre predajne Tesco. Po podpise sa stane aktívnou zmluvou a umožní objednávky v rozsahu siete.",
+    documentUrl: "/zmluvy/ctr_demo_sent#dokument",
+    createdAt: "2026-03-10T09:00:00.000Z",
+    updatedAt: "2026-03-12T11:00:00.000Z",
+  },
+];
 
 export const SEED_CHAINS: Chain[] = [
   { id: "chain_tesco", name: "Tesco", venueCount: 8 },
@@ -309,6 +351,7 @@ export const SEED_CAMPAIGNS: Campaign[] = [
       { dayOfWeek: 6, startMinute: 9 * 60, endMinute: 18 * 60 },
     ],
     packageId: "pkg_ba",
+    contractId: "ctr_demo_active",
     totalPriceEur: 89 * 14,
     createdAt: new Date(now - 5 * 86400000).toISOString(),
     updatedAt: new Date(now - 86400000).toISOString(),

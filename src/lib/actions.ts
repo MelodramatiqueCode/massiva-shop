@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { getMassivaClient } from "./massiva/client";
 import { placeCustomCampaign, placeOrder } from "./massiva/orders";
 import {
   buildTimetable,
@@ -20,6 +21,7 @@ export async function submitOrderAction(formData: FormData) {
   const spotName = String(formData.get("spotName") || "").trim();
   const spotFilename = String(formData.get("spotFilename") || "spot.mp3").trim();
   const spotDurationSec = Number(formData.get("spotDurationSec") || 30);
+  const acceptTerms = formData.get("acceptTerms") === "on";
 
   if (
     !packageId ||
@@ -43,6 +45,7 @@ export async function submitOrderAction(formData: FormData) {
     spotName: spotName || campaignName,
     spotFilename,
     spotDurationSec,
+    acceptTerms,
   });
 
   redirect(`/kampane/${result.campaign.id}?objednane=1`);
@@ -63,6 +66,8 @@ export async function submitCampaignBuilderAction(formData: FormData) {
   const spotName = String(formData.get("spotName") || "").trim();
   const spotFilename = String(formData.get("spotFilename") || "spot.mp3").trim();
   const spotDurationSec = Number(formData.get("spotDurationSec") || 30);
+  const acceptTerms = formData.get("acceptTerms") === "on";
+  const contractId = String(formData.get("contractId") || "").trim();
 
   const weekdays = String(formData.get("weekdays") || "")
     .split(",")
@@ -118,7 +123,22 @@ export async function submitCampaignBuilderAction(formData: FormData) {
     spotName: spotName || campaignName,
     spotFilename,
     spotDurationSec,
+    acceptTerms,
+    contractId: contractId || undefined,
   });
 
   redirect(`/kampane/${result.campaign.id}?objednane=1`);
+}
+
+export async function signContractAction(formData: FormData) {
+  const contractId = String(formData.get("contractId") || "");
+  if (!contractId) throw new Error("Chýba ID zmluvy.");
+
+  const api = getMassivaClient();
+  const signed = await api.signContract(contractId);
+  if (!signed) {
+    throw new Error("Zmluvu sa nepodarilo podpísať (neplatný stav).");
+  }
+
+  redirect(`/zmluvy/${signed.id}?podpisane=1`);
 }

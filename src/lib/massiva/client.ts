@@ -1,9 +1,12 @@
 import { newId, readStore, writeStore } from "./store";
+import { pickActiveContract } from "./contracts";
 import type {
   Account,
   Campaign,
   Chain,
   Content,
+  Contract,
+  ContractStatus,
   CreateCampaignInput,
   CreateContentInput,
   MediaPackage,
@@ -22,6 +25,16 @@ export type MassivaClient = {
   getAccounts(): Promise<Account[]>;
   searchAccounts(query: SearchQuery): Promise<Account[]>;
   getAccount(id: string): Promise<Account | null>;
+
+  getContracts(): Promise<Contract[]>;
+  searchContracts(query: SearchQuery): Promise<Contract[]>;
+  getContract(id: string): Promise<Contract | null>;
+  getActiveContract(accountId: string): Promise<Contract | null>;
+  updateContractStatus(
+    id: string,
+    status: ContractStatus,
+  ): Promise<Contract | null>;
+  signContract(id: string): Promise<Contract | null>;
 
   getCampaigns(): Promise<Campaign[]>;
   searchCampaigns(query: SearchQuery): Promise<Campaign[]>;
@@ -85,6 +98,61 @@ export const mockMassiva: MassivaClient = {
     return (await this.getAccounts()).find((a) => a.id === id) ?? null;
   },
 
+  async getContracts() {
+    const store = await readStore();
+    return [...store.contracts].sort(
+      (a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt),
+    );
+  },
+  async searchContracts(query) {
+    let list = await this.getContracts();
+    if (query.accountId)
+      list = list.filter((c) => c.accountId === query.accountId);
+    return matchQ(list, query.q, ["number", "title", "id"]);
+  },
+  async getContract(id) {
+    return (await this.getContracts()).find((c) => c.id === id) ?? null;
+  },
+  async getActiveContract(accountId) {
+    const list = await this.getContracts();
+    return pickActiveContract(list, accountId);
+  },
+  async updateContractStatus(id, status) {
+    const store = await readStore();
+    const idx = store.contracts.findIndex((c) => c.id === id);
+    if (idx < 0) return null;
+    const now = new Date().toISOString();
+    store.contracts[idx] = {
+      ...store.contracts[idx],
+      status,
+      updatedAt: now,
+      signedAt:
+        status === "signed" || status === "active"
+          ? (store.contracts[idx].signedAt ?? now)
+          : store.contracts[idx].signedAt,
+    };
+    await writeStore(store);
+    return store.contracts[idx];
+  },
+  async signContract(id) {
+    const store = await readStore();
+    const idx = store.contracts.findIndex((c) => c.id === id);
+    if (idx < 0) return null;
+    const contract = store.contracts[idx];
+    if (contract.status === "cancelled" || contract.status === "expired") {
+      return null;
+    }
+    const now = new Date().toISOString();
+    store.contracts[idx] = {
+      ...contract,
+      status: "active",
+      signedAt: now,
+      updatedAt: now,
+    };
+    await writeStore(store);
+    return store.contracts[idx];
+  },
+
   async getCampaigns() {
     const store = await readStore();
     return [...store.campaigns].sort(
@@ -125,6 +193,7 @@ export const mockMassiva: MassivaClient = {
         { dayOfWeek: 6, startMinute: 540, endMinute: 1080 },
       ],
       packageId: input.packageId,
+      contractId: input.contractId,
       totalPriceEur: input.totalPriceEur,
       createdAt: now,
       updatedAt: now,

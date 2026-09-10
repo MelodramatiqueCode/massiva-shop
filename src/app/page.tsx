@@ -38,14 +38,25 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/baliky"
-              className="btn"
+              className="btn btn-ghost"
               style={{
-                background: "rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.1)",
                 color: "#fff",
                 borderColor: "rgba(255,255,255,0.25)",
               }}
             >
-              Hotové balíky
+              Balíky
+            </Link>
+            <Link
+              href="/zmluvy"
+              className="btn btn-ghost"
+              style={{
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                borderColor: "rgba(255,255,255,0.25)",
+              }}
+            >
+              Zmluvy
             </Link>
           </div>
         </div>

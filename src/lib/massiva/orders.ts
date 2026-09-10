@@ -1,14 +1,38 @@
 import { DEMO_ACCOUNT } from "./seed";
 import { getMassivaClient } from "./client";
+import {
+  canOrderWithContract,
+  contractCoversVenues,
+  pricingAccountFromContract,
+} from "./contracts";
 import { MIN_CAMPAIGN_DAYS, quoteCampaign } from "./pricing";
 import { calendarDaysInclusive } from "./timetable";
 import type {
+  Contract,
   CreateCampaignInput,
   CreateContentInput,
   TimetableInterval,
 } from "./types";
 
 export { DEMO_ACCOUNT };
+
+async function requireOrderContract(venueIds: string[]): Promise<Contract> {
+  const api = getMassivaClient();
+  const contract = await api.getActiveContract(DEMO_ACCOUNT.id);
+  if (!canOrderWithContract(contract)) {
+    throw new Error(
+      "Chýba aktívna zmluva. Podpíšte zmluvu v sekcii Zmluvy a skúste znova.",
+    );
+  }
+  const venues = await api.getVenues();
+  const chainById = Object.fromEntries(venues.map((v) => [v.id, v.chainId]));
+  if (!contractCoversVenues(contract!, venueIds, chainById)) {
+    throw new Error(
+      `Zmluva ${contract!.number} nepokrýva vybrané predajne. Skontrolujte rozsah zmluvy.`,
+    );
+  }
+  return contract!;
+}
 
 export async function placeOrder(input: {
   packageId: string;
@@ -21,10 +45,17 @@ export async function placeOrder(input: {
   spotName: string;
   spotFilename: string;
   spotDurationSec: number;
+  acceptTerms?: boolean;
 }) {
+  if (!input.acceptTerms) {
+    throw new Error("Potvrďte súhlas so zmluvnými podmienkami.");
+  }
+
   const api = getMassivaClient();
   const pkg = await api.getPackage(input.packageId);
   if (!pkg) throw new Error("Balík neexistuje");
+
+  const contract = await requireOrderContract(pkg.venueIds);
 
   const ends = new Date(input.startsAt);
   ends.setDate(ends.getDate() + input.days);
@@ -55,7 +86,8 @@ export async function placeOrder(input: {
     endsAt,
     playsPerHour: pkg.playsPerHour,
     timetable,
-    account,
+    account: pricingAccountFromContract(account, contract),
+    contract,
     mediaPackage: pkg,
   });
 
@@ -69,6 +101,7 @@ export async function placeOrder(input: {
     endsAt: ends.toISOString(),
     playsPerHour: pkg.playsPerHour,
     packageId: pkg.id,
+    contractId: contract.id,
     timetable,
     totalPriceEur: quote.totalPriceEur,
     status: "scheduled",
@@ -78,6 +111,7 @@ export async function placeOrder(input: {
     campaign,
     content,
     package: pkg,
+    contract,
     quote,
     contact: {
       name: input.contactName,
@@ -103,7 +137,12 @@ export async function placeCustomCampaign(input: {
   spotFilename: string;
   spotDurationSec: number;
   packageId?: string;
+  acceptTerms?: boolean;
+  contractId?: string;
 }) {
+  if (!input.acceptTerms) {
+    throw new Error("Potvrďte súhlas so zmluvnými podmienkami.");
+  }
   if (input.venueIds.length < 1) {
     throw new Error("Vyber aspoň jednu predajňu na mape.");
   }
@@ -126,6 +165,21 @@ export async function placeCustomCampaign(input: {
     throw new Error("Niektoré predajne neexistujú.");
   }
 
+  let contract: Contract | null = null;
+  if (input.contractId) {
+    contract = await api.getContract(input.contractId);
+  }
+  if (!canOrderWithContract(contract)) {
+    contract = await requireOrderContract(input.venueIds);
+  } else {
+    const chainById = Object.fromEntries(venues.map((v) => [v.id, v.chainId]));
+    if (!contractCoversVenues(contract!, input.venueIds, chainById)) {
+      throw new Error(
+        `Zmluva ${contract!.number} nepokrýva vybrané predajne.`,
+      );
+    }
+  }
+
   const chainIds = [...new Set(selected.map((v) => v.chainId))];
   const account = await api.getAccount(DEMO_ACCOUNT.id);
   const mediaPackage = input.packageId
@@ -138,7 +192,8 @@ export async function placeCustomCampaign(input: {
     endsAt: input.endsAt,
     playsPerHour: input.playsPerHour,
     timetable: input.timetable,
-    account,
+    account: pricingAccountFromContract(account, contract),
+    contract,
     mediaPackage,
   });
 
@@ -161,6 +216,7 @@ export async function placeCustomCampaign(input: {
     playsPerHour: input.playsPerHour,
     timetable: input.timetable,
     packageId: input.packageId,
+    contractId: contract!.id,
     totalPriceEur: quote.totalPriceEur,
     status: "scheduled",
   } satisfies CreateCampaignInput);
@@ -169,6 +225,7 @@ export async function placeCustomCampaign(input: {
     campaign,
     content,
     venues: selected,
+    contract,
     quote,
     contact: {
       name: input.contactName,

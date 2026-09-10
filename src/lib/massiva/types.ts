@@ -8,10 +8,44 @@ export type Account = {
   email: string;
   company?: string;
   createdAt: string;
-  /** Contract discount 0–1 (e.g. 0.1 = 10 %). */
+  /** Fallback when no Contract is attached (legacy). */
   contractDiscountPct?: number;
-  /** Minimum allowed cost per play (CPP floor). */
+  /** Fallback CPP floor when no Contract is attached (legacy). */
   minCppEur?: number;
+};
+
+export type ContractStatus =
+  | "draft"
+  | "sent"
+  | "signed"
+  | "active"
+  | "expired"
+  | "cancelled";
+
+/** Commercial media contract — rate card + legal gate before order. */
+export type Contract = {
+  id: MassivaId;
+  number: string;
+  accountId: MassivaId;
+  title: string;
+  status: ContractStatus;
+  /** Validity start YYYY-MM-DD */
+  startsAt: string;
+  /** Validity end YYYY-MM-DD */
+  endsAt: string;
+  signedAt?: string;
+  /** Contract discount 0–1. */
+  contractDiscountPct: number;
+  /** Minimum allowed cost per play (CPP floor). */
+  minCppEur: number;
+  /** Optional scope — empty = whole network under account. */
+  chainIds?: MassivaId[];
+  venueIds?: MassivaId[];
+  termsSummary: string;
+  /** Mock PDF / HTML terms URL. */
+  documentUrl?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Chain = {
@@ -77,6 +111,8 @@ export type Campaign = {
   playsPerHour: number;
   timetable: TimetableInterval[];
   packageId?: string;
+  /** Media contract used for pricing / acceptance. */
+  contractId?: MassivaId;
   totalPriceEur: number;
   createdAt: string;
   updatedAt: string;
@@ -116,6 +152,7 @@ export type CreateCampaignInput = {
   playsPerHour: number;
   timetable?: TimetableInterval[];
   packageId?: string;
+  contractId?: MassivaId;
   totalPriceEur: number;
   status?: CampaignStatus;
 };

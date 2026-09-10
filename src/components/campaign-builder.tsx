@@ -17,7 +17,7 @@ import {
   calendarDaysInclusive,
   type TimeWindow,
 } from "@/lib/massiva/timetable";
-import type { Chain, Venue } from "@/lib/massiva/types";
+import type { Chain, Contract, Venue } from "@/lib/massiva/types";
 
 const VenueMap = dynamic(
   () => import("./venue-map").then((m) => m.VenueMap),
@@ -34,6 +34,8 @@ const VenueMap = dynamic(
 type Props = {
   venues: Venue[];
   chains: Chain[];
+  contract?: Contract | null;
+  canOrder?: boolean;
 };
 
 function defaultEndDate(start: string, minDays: number) {
@@ -42,7 +44,12 @@ function defaultEndDate(start: string, minDays: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function CampaignBuilder({ venues, chains }: Props) {
+export function CampaignBuilder({
+  venues,
+  chains,
+  contract = null,
+  canOrder = true,
+}: Props) {
   const chainName = useMemo(
     () => Object.fromEntries(chains.map((c) => [c.id, c.name])),
     [chains],
@@ -100,9 +107,10 @@ export function CampaignBuilder({ venues, chains }: Props) {
         playsPerHour,
         timetable,
         account: DEMO_ACCOUNT,
+        contract,
         mediaPackage: null,
       }),
-    [selectedVenues, startsAt, endsAt, playsPerHour, timetable],
+    [selectedVenues, startsAt, endsAt, playsPerHour, timetable, contract],
   );
 
   function toggle(id: string) {
@@ -151,7 +159,11 @@ export function CampaignBuilder({ venues, chains }: Props) {
   }
 
   const canSubmit =
-    selectedIds.length > 0 && weekdays.length > 0 && windows.length > 0 && spanDays >= 1;
+    canOrder &&
+    selectedIds.length > 0 &&
+    weekdays.length > 0 &&
+    windows.length > 0 &&
+    spanDays >= 1;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
@@ -234,6 +246,7 @@ export function CampaignBuilder({ venues, chains }: Props) {
       >
         <input type="hidden" name="venueIds" value={selectedIds.join(",")} />
         <input type="hidden" name="weekdays" value={weekdays.join(",")} />
+        <input type="hidden" name="contractId" value={contract?.id ?? ""} />
         <input
           type="hidden"
           name="windows"
@@ -551,15 +564,40 @@ export function CampaignBuilder({ venues, chains }: Props) {
 
         <p className="text-xs text-[var(--ink-soft)]">
           Rate engine: venue base + daypart/occupancy + footfall CPT + CPP floor +
-          zmluvná zľava. Základ sa líši podľa predajne (tier A/B/C).
+          zmluvná zľava
+          {contract
+            ? ` (${contract.number}, ${(contract.contractDiscountPct * 100).toFixed(0)}%)`
+            : ""}
+          . Základ sa líši podľa predajne (tier A/B/C).
         </p>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="acceptTerms"
+            required
+            disabled={!canOrder}
+            className="mt-1"
+          />
+          <span>
+            Súhlasím so zmluvou{" "}
+            {contract ? (
+              <a href={`/zmluvy/${contract.id}`} className="font-semibold underline">
+                {contract.number}
+              </a>
+            ) : (
+              "—"
+            )}{" "}
+            a podmienkami Massiva Air.
+          </span>
+        </label>
 
         <button
           type="submit"
           className="btn btn-primary w-full"
           disabled={!canSubmit}
         >
-          Vytvoriť kampaň
+          {canOrder ? "Vytvoriť kampaň" : "Najprv podpíšte zmluvu"}
         </button>
       </form>
     </div>
