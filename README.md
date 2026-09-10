@@ -27,6 +27,7 @@ Otvor [http://localhost:3000](http://localhost:3000).
 Bez aktívnej / podpísanej zmluvy je odoslanie objednávky zablokované.
 
 Mock cenník custom výberu: rate engine podľa predajne + daypart/occupancy + zmluva.
+Odhad CPT je ladený okolo ~0,005 € (HEAR_RATE + intenzita prehraní).
 
 ## Massiva mock
 

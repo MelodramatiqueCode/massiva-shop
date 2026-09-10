@@ -16,8 +16,11 @@ export const BASE_WINDOW_HOURS = 8;
 export const PRICE_PER_VENUE_PER_DAY_EUR = 9;
 /** Assumed store open hours for footfall share. */
 export const STORE_OPEN_HOURS = 12;
-/** Share of visitors who hear a spot during window (mock). */
-export const HEAR_RATE = 0.18;
+/**
+ * Share of window visitors who register the spot (mock).
+ * Tuned with play intensity so typical CPT sits near ~0.005 €.
+ */
+export const HEAR_RATE = 0.85;
 
 export type DaypartBand = {
   label: string;
@@ -239,7 +242,7 @@ export function quoteCampaign(input: RateEngineInput): RateEngineQuote {
     input.venues.length * activeDays * windowHours * playsPerHour,
   );
 
-  // Point 3: footfall contacts during selected windows
+  // Point 3: footfall contacts during selected windows (scales with play intensity)
   let estimatedContacts = 0;
   for (const venue of input.venues) {
     const footfall = venue.footfallDaily || 3000;
@@ -247,7 +250,8 @@ export function quoteCampaign(input: RateEngineInput): RateEngineQuote {
       footfall *
       activeDays *
       (windowHours / STORE_OPEN_HOURS) *
-      HEAR_RATE;
+      HEAR_RATE *
+      playFactor;
   }
   estimatedContacts = Math.round(estimatedContacts);
 

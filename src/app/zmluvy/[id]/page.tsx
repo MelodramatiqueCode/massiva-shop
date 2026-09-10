@@ -7,6 +7,7 @@ import {
   formatDateTime,
   formatEur,
 } from "@/lib/format";
+import { buildContractDocument } from "@/lib/massiva/contract-document";
 import { canOrderWithContract } from "@/lib/massiva/contracts";
 import { getMassivaClient } from "@/lib/massiva/client";
 
@@ -36,6 +37,7 @@ export default async function ContractDetailPage({
     contract.status === "draft" ||
     contract.status === "sent" ||
     contract.status === "signed";
+  const doc = buildContractDocument(contract);
 
   const scope =
     (contract.chainIds?.length ?? 0) > 0
@@ -92,25 +94,45 @@ export default async function ContractDetailPage({
 
       <section
         id="dokument"
-        className="panel fade-up space-y-3 p-5 md:p-6"
+        className="panel fade-up space-y-5 p-5 md:p-6"
         style={{ animationDelay: "90ms" }}
       >
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-bold">
-          Podmienky (mock)
-        </h2>
-        <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-          {contract.termsSummary}
-        </p>
-        <ul className="space-y-1 text-sm text-[var(--ink-soft)]">
-          <li>• Objednávky airtime len pri aktívnej / podpísanej zmluve.</li>
-          <li>• Cena podľa rate engine + zľava a CPP floor zo zmluvy.</li>
-          <li>• Spot musí spĺňať pravidlá siete (mock — bez kontroly).</li>
-        </ul>
+        <div className="space-y-2">
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-bold">
+            {doc.title}
+          </h2>
+          <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+            {doc.intro}
+          </p>
+        </div>
+
+        <div className="space-y-5 border-t border-[var(--line)] pt-5">
+          {doc.sections.map((section) => (
+            <article key={section.heading} className="space-y-2">
+              <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
+                {section.heading}
+              </h3>
+              {section.paragraphs.map((p) => (
+                <p
+                  key={p.slice(0, 48)}
+                  className="text-sm leading-relaxed text-[var(--ink-soft)]"
+                >
+                  {p}
+                </p>
+              ))}
+            </article>
+          ))}
+        </div>
+
         {contract.signedAt ? (
-          <p className="text-sm font-semibold">
+          <p className="border-t border-[var(--line)] pt-4 text-sm font-semibold">
             Podpísané: {formatDateTime(contract.signedAt)}
           </p>
-        ) : null}
+        ) : (
+          <p className="border-t border-[var(--line)] pt-4 text-sm text-[var(--ink-soft)]">
+            Podpisom (demo) potvrdzujete súhlas s vyššie uvedenými podmienkami.
+          </p>
+        )}
       </section>
 
       <section
