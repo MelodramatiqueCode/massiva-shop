@@ -33,6 +33,9 @@ import {
   SEED_USERS,
 } from "@/lib/shop/seed";
 
+/** Catalog source for venues/chains. Default mock keeps production safe. */
+export type VenueSource = "mock" | "servislist";
+
 export type MassivaStore = {
   accounts: Account[];
   contracts: Contract[];
@@ -47,6 +50,7 @@ export type MassivaStore = {
   memberships: Membership[];
   campaignOrders: CampaignOrder[];
   orderSegments: OrderSegment[];
+  venueSource: VenueSource;
 };
 
 /** On Vercel the repo `data/` dir is gitignored + FS is ephemeral — use /tmp. */
@@ -137,10 +141,13 @@ function emptySeed(): MassivaStore {
     memberships: SEED_MEMBERSHIPS,
     campaignOrders: [],
     orderSegments: [],
+    venueSource: "mock",
   };
 }
 
 function normalizeStore(store: MassivaStore): MassivaStore {
+  store.venueSource =
+    store.venueSource === "servislist" ? "servislist" : "mock";
   store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
   store.accounts = store.accounts?.length
     ? store.accounts.map((a) =>

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { PersonaSwitcher } from "@/components/persona-switcher";
+import { VenueSourceToggle } from "@/components/venue-source-toggle";
+import { getMassivaClient } from "@/lib/massiva/client";
 import { getShopSession } from "@/lib/shop/session";
 import { listPendingApprovals } from "@/lib/shop/orders";
 import "./globals.css";
@@ -31,6 +33,7 @@ export default async function RootLayout({
   const pending = session.isChainAdmin
     ? await listPendingApprovals(session)
     : [];
+  const venueSource = await getMassivaClient().getVenueSource();
 
   return (
     <html
@@ -63,14 +66,18 @@ export default async function RootLayout({
                 Schválenia
                 {pending.length > 0 ? ` (${pending.length})` : ""}
               </Link>
+              <VenueSourceToggle />
               <PersonaSwitcher session={session} />
             </nav>
           </div>
         </header>
         <main className="flex-1 py-8 md:py-10">{children}</main>
         <footer className="shell pb-10 pt-2 text-sm text-[var(--ink-soft)]">
-          Massiva Air · mock napojenie · persona: {session.organization.name} (
-          {session.organization.type})
+          Massiva Air ·{" "}
+          {venueSource === "servislist"
+            ? "ServisList inventár"
+            : "mock napojenie"}{" "}
+          · persona: {session.organization.name} ({session.organization.type})
         </footer>
       </body>
     </html>

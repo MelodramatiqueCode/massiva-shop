@@ -198,3 +198,11 @@ export async function rejectSegmentAction(formData: FormData) {
   revalidatePath("/kampane");
   redirect("/schvalenia?ok=rejected");
 }
+
+export async function setVenueSourceAction(formData: FormData) {
+  const source = String(formData.get("source") || "mock");
+  const api = getMassivaClient();
+  await api.setVenueSource(source === "servislist" ? "servislist" : "mock");
+  revalidatePath("/", "layout");
+  redirect("/predajne");
+}

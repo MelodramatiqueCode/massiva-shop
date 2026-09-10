@@ -3,7 +3,11 @@ import { getMassivaClient } from "@/lib/massiva/client";
 
 export default async function VenuesPage() {
   const api = getMassivaClient();
-  const [venues, chains] = await Promise.all([api.getVenues(), api.getChains()]);
+  const [venues, chains, source] = await Promise.all([
+    api.getVenues(),
+    api.getChains(),
+    api.getVenueSource(),
+  ]);
   const chainName = Object.fromEntries(chains.map((c) => [c.id, c.name]));
 
   return (
@@ -13,7 +17,9 @@ export default async function VenuesPage() {
           Predajne
         </h1>
         <p className="text-[var(--ink-soft)]">
-          Massiva venues — inventár, na ktorý sa mapujú balíky a kampane.
+          {source === "servislist"
+            ? `ServisList inventár — ${venues.length} predajní · ${chains.length} partnerov.`
+            : "Massiva mock venues — inventár, na ktorý sa mapujú balíky a kampane."}
         </p>
       </section>
 

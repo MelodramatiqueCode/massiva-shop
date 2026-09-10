@@ -1,4 +1,5 @@
-import { newId, readStore, writeStore } from "./store";
+import { mapServisListToChainsAndVenues } from "@/lib/shop/servislist-inventory";
+import { newId, readStore, writeStore, type VenueSource } from "./store";
 import { pickActiveContract } from "./contracts";
 import type {
   Account,
@@ -16,6 +17,31 @@ import type {
   Venue,
   VenueDayOccupancy,
 } from "./types";
+
+async function catalogFromSource(): Promise<{
+  venues: Venue[];
+  chains: Chain[];
+  source: VenueSource;
+}> {
+  const store = await readStore();
+  if (store.venueSource === "servislist") {
+    try {
+      const mapped = mapServisListToChainsAndVenues();
+      return {
+        venues: mapped.venues,
+        chains: mapped.chains,
+        source: "servislist",
+      };
+    } catch {
+      // Keep mock catalog if ServisList snapshot fails to load.
+    }
+  }
+  return {
+    venues: store.venues,
+    chains: store.chains,
+    source: "mock",
+  };
+}
 
 /**
  * Massiva client — mock implementation.
@@ -69,6 +95,9 @@ export type MassivaClient = {
   getPackages(): Promise<MediaPackage[]>;
   getPackage(id: string): Promise<MediaPackage | null>;
   getVenueOccupancy(venueId: string, date: string): Promise<VenueDayOccupancy>;
+
+  getVenueSource(): Promise<VenueSource>;
+  setVenueSource(source: VenueSource): Promise<VenueSource>;
 };
 
 function matchQ<T extends object>(
@@ -216,7 +245,7 @@ export const mockMassiva: MassivaClient = {
   },
 
   async getChains() {
-    return (await readStore()).chains;
+    return (await catalogFromSource()).chains;
   },
   async searchChains(query) {
     return matchQ(await this.getChains(), query.q, ["name"]);
@@ -292,7 +321,7 @@ export const mockMassiva: MassivaClient = {
   },
 
   async getVenues() {
-    return (await readStore()).venues;
+    return (await catalogFromSource()).venues;
   },
   async searchVenues(query) {
     let list = await this.getVenues();
@@ -323,6 +352,16 @@ export const mockMassiva: MassivaClient = {
       occupiedSlots: 12,
       totalSlots: 40,
     };
+  },
+
+  async getVenueSource() {
+    return (await catalogFromSource()).source;
+  },
+  async setVenueSource(source) {
+    const store = await readStore();
+    store.venueSource = source === "servislist" ? "servislist" : "mock";
+    await writeStore(store);
+    return store.venueSource;
   },
 };
 
