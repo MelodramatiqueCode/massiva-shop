@@ -1,9 +1,14 @@
-export function formatEur(value: number) {
+export function formatEur(value: number, fractionDigits = 0) {
   return new Intl.NumberFormat("sk-SK", {
     style: "currency",
     currency: "EUR",
-    maximumFractionDigits: 0,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value);
+}
+
+export function formatNumber(value: number) {
+  return new Intl.NumberFormat("sk-SK").format(value);
 }
 
 export function formatDate(iso: string) {

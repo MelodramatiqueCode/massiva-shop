@@ -3,10 +3,10 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { submitCampaignBuilderAction } from "@/lib/actions";
-import { formatEur } from "@/lib/format";
+import { formatEur, formatNumber } from "@/lib/format";
 import {
   BASE_PLAYS_PER_HOUR,
-  estimateCampaignPrice,
+  estimateCampaignBreakdown,
   MAX_PLAYS_PER_HOUR,
   MIN_CAMPAIGN_DAYS,
   PRICE_PER_VENUE_PER_DAY_EUR,
@@ -84,7 +84,7 @@ export function CampaignBuilder({ venues, chains }: Props) {
 
   const spanDays = calendarDaysInclusive(startsAt, endsAt);
   const hours = windowHours(windows);
-  const total = estimateCampaignPrice({
+  const estimate = estimateCampaignBreakdown({
     venueCount: selectedIds.length,
     days: Math.max(0, spanDays),
     playsPerHour,
@@ -236,9 +236,39 @@ export function CampaignBuilder({ venues, chains }: Props) {
           </p>
         </div>
 
-        <div className="rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-2 text-sm font-semibold">
-          {selectedIds.length} predajní · {weekdays.length} dní/týž. · {hours.toFixed(1)} h/deň
-          · odhad {formatEur(total)}
+        <div className="space-y-2 rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-3 text-sm">
+          <div className="font-semibold">
+            {selectedIds.length} predajní · {weekdays.length} dní/týž. ·{" "}
+            {hours.toFixed(1)} h/deň
+          </div>
+          <dl className="grid gap-1.5 sm:grid-cols-3">
+            <div>
+              <dt className="text-xs font-medium text-[var(--ink-soft)]">
+                Odhadovaná cena
+              </dt>
+              <dd className="text-lg font-extrabold tracking-tight">
+                {formatEur(estimate.totalPriceEur)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-[var(--ink-soft)]">
+                Odhad prehraní
+              </dt>
+              <dd className="text-lg font-extrabold tracking-tight">
+                {formatNumber(estimate.estimatedPlays)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-[var(--ink-soft)]">
+                Cena / prehratie
+              </dt>
+              <dd className="text-lg font-extrabold tracking-tight">
+                {estimate.estimatedPlays > 0
+                  ? formatEur(estimate.pricePerPlayEur, 2)
+                  : "—"}
+              </dd>
+            </div>
+          </dl>
         </div>
 
         {selectedVenues.length > 0 ? (

@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatDate, formatDateTime, formatEur, STATUS_LABELS } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  formatEur,
+  formatNumber,
+  STATUS_LABELS,
+} from "@/lib/format";
 import { getMassivaClient } from "@/lib/massiva/client";
-import { summarizeTimetable } from "@/lib/massiva/timetable";
+import {
+  estimateCampaignBreakdown,
+  weekdayCountFromTimetable,
+  windowHoursFromTimetable,
+} from "@/lib/massiva/pricing";
+import { calendarDaysInclusive, summarizeTimetable } from "@/lib/massiva/timetable";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ objednane?: string }>;
@@ -30,6 +41,21 @@ export default async function CampaignDetailPage({
 
   const venueMap = Object.fromEntries(venues.map((v) => [v.id, v]));
   const scheduleLines = summarizeTimetable(campaign.timetable ?? []);
+  const timetable = campaign.timetable ?? [];
+  const estimate = estimateCampaignBreakdown({
+    venueCount: campaign.venueIds.length,
+    days: calendarDaysInclusive(
+      campaign.startsAt.slice(0, 10),
+      campaign.endsAt.slice(0, 10),
+    ),
+    playsPerHour: campaign.playsPerHour,
+    weekdayCount: weekdayCountFromTimetable(timetable),
+    windowHours: windowHoursFromTimetable(timetable),
+  });
+  // Prefer stored total if present; still show plays/CPM from model.
+  const totalPrice = campaign.totalPriceEur || estimate.totalPriceEur;
+  const pricePerPlay =
+    estimate.estimatedPlays > 0 ? totalPrice / estimate.estimatedPlays : 0;
 
   return (
     <div className="shell space-y-6">
@@ -53,8 +79,28 @@ export default async function CampaignDetailPage({
         </h1>
         <p className="text-[var(--ink-soft)]">
           {formatDate(campaign.startsAt)} → {formatDate(campaign.endsAt)} ·{" "}
-          {campaign.playsPerHour}× / hod · {formatEur(campaign.totalPriceEur)}
+          {campaign.playsPerHour}× / hod · {formatEur(totalPrice)}
         </p>
+      </section>
+
+      <section
+        className="fade-up grid grid-cols-1 gap-3 sm:grid-cols-3"
+        style={{ animationDelay: "60ms" }}
+      >
+        <div className="stat">
+          <span className="text-sm text-[var(--ink-soft)]">Cena kampane</span>
+          <strong>{formatEur(totalPrice)}</strong>
+        </div>
+        <div className="stat">
+          <span className="text-sm text-[var(--ink-soft)]">Odhad prehraní</span>
+          <strong>{formatNumber(estimate.estimatedPlays)}</strong>
+        </div>
+        <div className="stat">
+          <span className="text-sm text-[var(--ink-soft)]">Cena / prehratie</span>
+          <strong>
+            {estimate.estimatedPlays > 0 ? formatEur(pricePerPlay, 2) : "—"}
+          </strong>
+        </div>
       </section>
 
       <section
