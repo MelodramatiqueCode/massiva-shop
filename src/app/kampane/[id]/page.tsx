@@ -11,6 +11,8 @@ import {
 import { getMassivaClient } from "@/lib/massiva/client";
 import { quoteCampaign } from "@/lib/massiva/pricing";
 import { DEMO_ACCOUNT } from "@/lib/massiva/seed";
+import { getOrderByCampaignId } from "@/lib/shop/orders";
+import { ORDER_STATUS_LABELS, SEGMENT_STATUS_LABELS } from "@/lib/format";
 import { summarizeTimetable } from "@/lib/massiva/timetable";
 
 type Params = Promise<{ id: string }>;
@@ -29,6 +31,8 @@ export default async function CampaignDetailPage({
 
   const campaign = await api.getCampaign(id);
   if (!campaign) notFound();
+
+  const shopOrder = await getOrderByCampaignId(campaign.id);
 
   const [content, venues, playlogs, pkg, contract] = await Promise.all([
     api.getContent(campaign.contentId),
@@ -118,6 +122,41 @@ export default async function CampaignDetailPage({
           </strong>
         </div>
       </section>
+
+
+      {shopOrder ? (
+        <section className="panel fade-up space-y-3 p-5" style={{ animationDelay: "80ms" }}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">
+              Schválenia po sieťach (partial fulfill)
+            </h2>
+            <span className="chip">
+              {ORDER_STATUS_LABELS[shopOrder.order.status] ?? shopOrder.order.status}
+            </span>
+          </div>
+          <p className="text-sm text-[var(--ink-soft)]">
+            Požadované {formatEur(shopOrder.order.totalQuoteEur)} · schválené{" "}
+            {formatEur(shopOrder.order.approvedQuoteEur)} · billing{" "}
+            {shopOrder.order.billingMode === "internal_free" ? "interné (bez platby)" : "platené"}
+          </p>
+          <ul className="space-y-2 text-sm">
+            {shopOrder.segments.map((seg) => (
+              <li
+                key={seg.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--line)] px-3 py-2"
+              >
+                <span>
+                  <strong>{seg.chainName}</strong> · {seg.venueIds.length} predajní ·{" "}
+                  {formatEur(seg.quoteEur)}
+                </span>
+                <span className="chip">
+                  {SEGMENT_STATUS_LABELS[seg.approvalStatus] ?? seg.approvalStatus}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="panel fade-up space-y-2 p-5 text-sm" style={{ animationDelay: "70ms" }}>
         <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">

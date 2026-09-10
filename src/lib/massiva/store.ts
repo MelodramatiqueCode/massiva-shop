@@ -20,6 +20,18 @@ import type {
   Playlog,
   Venue,
 } from "./types";
+import type {
+  CampaignOrder,
+  Membership,
+  OrderSegment,
+  Organization,
+  ShopUser,
+} from "@/lib/shop/types";
+import {
+  SEED_MEMBERSHIPS,
+  SEED_ORGANIZATIONS,
+  SEED_USERS,
+} from "@/lib/shop/seed";
 
 export type MassivaStore = {
   accounts: Account[];
@@ -30,6 +42,11 @@ export type MassivaStore = {
   campaigns: Campaign[];
   playlogs: Playlog[];
   packages: MediaPackage[];
+  shopUsers: ShopUser[];
+  organizations: Organization[];
+  memberships: Membership[];
+  campaignOrders: CampaignOrder[];
+  orderSegments: OrderSegment[];
 };
 
 /** On Vercel the repo `data/` dir is gitignored + FS is ephemeral — use /tmp. */
@@ -115,6 +132,11 @@ function emptySeed(): MassivaStore {
     campaigns: SEED_CAMPAIGNS,
     playlogs: buildSeedPlaylogs(),
     packages: SEED_PACKAGES,
+    shopUsers: SEED_USERS,
+    organizations: SEED_ORGANIZATIONS,
+    memberships: SEED_MEMBERSHIPS,
+    campaignOrders: [],
+    orderSegments: [],
   };
 }
 
@@ -140,6 +162,15 @@ function normalizeStore(store: MassivaStore): MassivaStore {
   store.campaigns = store.campaigns?.length ? store.campaigns : SEED_CAMPAIGNS;
   store.playlogs = store.playlogs?.length ? store.playlogs : buildSeedPlaylogs();
   store.chains = store.chains?.length ? store.chains : SEED_CHAINS;
+  store.shopUsers = store.shopUsers?.length ? store.shopUsers : SEED_USERS;
+  store.organizations = store.organizations?.length
+    ? store.organizations
+    : SEED_ORGANIZATIONS;
+  store.memberships = store.memberships?.length
+    ? store.memberships
+    : SEED_MEMBERSHIPS;
+  store.campaignOrders = store.campaignOrders ?? [];
+  store.orderSegments = store.orderSegments ?? [];
   return store;
 }
 

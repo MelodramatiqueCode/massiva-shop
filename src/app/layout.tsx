@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
+import { PersonaSwitcher } from "@/components/persona-switcher";
+import { getShopSession } from "@/lib/shop/session";
+import { listPendingApprovals } from "@/lib/shop/orders";
 import "./globals.css";
 
 const display = Space_Grotesk({
@@ -21,15 +24,22 @@ export const metadata: Metadata = {
     "Kúp mediálny priestor v predajniach. Audio spoty cez Massiva sieť.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({
+  children,
+}: LayoutProps<"/">) {
+  const session = await getShopSession();
+  const pending = session.isChainAdmin
+    ? await listPendingApprovals(session)
+    : [];
+
   return (
     <html
       lang="sk"
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
         <header className="site-header">
-          <div className="shell flex items-center justify-between gap-4 py-3.5">
+          <div className="shell flex flex-wrap items-center justify-between gap-3 py-3.5">
             <Link href="/" className="brand">
               MASSIVA<span> Air</span>
             </Link>
@@ -49,12 +59,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/kampane" className="btn btn-ghost">
                 Kampane
               </Link>
+              <Link href="/schvalenia" className="btn btn-ghost">
+                Schválenia
+                {pending.length > 0 ? ` (${pending.length})` : ""}
+              </Link>
+              <PersonaSwitcher session={session} />
             </nav>
           </div>
         </header>
         <main className="flex-1 py-8 md:py-10">{children}</main>
         <footer className="shell pb-10 pt-2 text-sm text-[var(--ink-soft)]">
-          Massiva Air · mock napojenie na Massiva API · MPD sieť predajní
+          Massiva Air · mock napojenie · persona: {session.organization.name} (
+          {session.organization.type})
         </footer>
       </body>
     </html>

@@ -49,3 +49,19 @@ export const CONTRACT_STATUS_LABELS: Record<string, string> = {
   expired: "Expirovaná",
   cancelled: "Zrušená",
 };
+
+export const ORDER_STATUS_LABELS: Record<string, string> = {
+  draft: "Koncept",
+  pending_approvals: "Čaká na schválenia",
+  partially_approved: "Čiastočne schválené",
+  approved: "Schválené",
+  approved_partial: "Schválené (partial fulfill)",
+  rejected: "Zamietnuté",
+  scheduled: "Naplánované",
+};
+
+export const SEGMENT_STATUS_LABELS: Record<string, string> = {
+  pending: "Čaká",
+  approved: "Schválené",
+  rejected: "Zamietnuté",
+};

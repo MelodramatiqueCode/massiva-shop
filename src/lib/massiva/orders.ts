@@ -1,4 +1,6 @@
 import { DEMO_ACCOUNT } from "./seed";
+import { getShopSession } from "@/lib/shop/session";
+import { createCampaignOrder } from "@/lib/shop/orders";
 import { getMassivaClient } from "./client";
 import {
   canOrderWithContract,
@@ -15,6 +17,36 @@ import type {
 } from "./types";
 
 export { DEMO_ACCOUNT };
+
+async function attachShopOrder(result: {
+  campaign: Awaited<ReturnType<Awaited<ReturnType<typeof getMassivaClient>>["createCampaign"]>>;
+  content: { id: string };
+  contract: Contract | null;
+  quote: { totalPriceEur: number };
+  contact: { name: string; email: string; company?: string };
+}, venues: import("./types").Venue[], timetable: TimetableInterval[], packageId?: string) {
+  const session = await getShopSession();
+  const billingMode = session.isChainAdmin ? "internal_free" : "paid";
+  const api = getMassivaClient();
+  if (billingMode === "paid") {
+    await api.updateCampaign(result.campaign.id, { status: "draft" });
+    result.campaign = { ...result.campaign, status: "draft" };
+  }
+  const { order, segments } = await createCampaignOrder({
+    session,
+    campaign: result.campaign,
+    contract: result.contract,
+    venues,
+    timetable,
+    billingMode,
+    contactName: result.contact.name,
+    contactEmail: result.contact.email,
+    company: result.contact.company,
+    packageId,
+  });
+  return { ...result, order, segments, billingMode };
+}
+
 
 async function requireOrderContract(venueIds: string[]): Promise<Contract> {
   const api = getMassivaClient();
@@ -109,7 +141,7 @@ export async function placeOrder(input: {
     status: "scheduled",
   } satisfies CreateCampaignInput);
 
-  return {
+  const base = {
     campaign,
     content,
     package: pkg,
@@ -121,6 +153,7 @@ export async function placeOrder(input: {
       company: input.company,
     },
   };
+  return attachShopOrder(base, selected, timetable, pkg.id);
 }
 
 export async function placeCustomCampaign(input: {
@@ -225,7 +258,7 @@ export async function placeCustomCampaign(input: {
     status: "scheduled",
   } satisfies CreateCampaignInput);
 
-  return {
+  const base = {
     campaign,
     content,
     venues: selected,
@@ -237,4 +270,5 @@ export async function placeCustomCampaign(input: {
       company: input.company,
     },
   };
+  return attachShopOrder(base, selected, input.timetable, input.packageId);
 }

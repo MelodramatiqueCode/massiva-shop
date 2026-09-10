@@ -1,5 +1,11 @@
 "use server";
 
+import { decideSegment } from "@/lib/shop/orders";
+import { getShopSession } from "@/lib/shop/session";
+import { SEED_USERS } from "@/lib/shop/seed";
+import { PERSONA_COOKIE } from "@/lib/shop/session";
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getMassivaClient } from "./massiva/client";
 import { placeCustomCampaign, placeOrder } from "./massiva/orders";
@@ -145,4 +151,50 @@ export async function signContractAction(formData: FormData) {
   }
 
   redirect(`/zmluvy/${signed.id}?podpisane=1`);
+}
+
+
+export async function switchPersonaAction(formData: FormData) {
+  const userId = String(formData.get("userId") || "");
+  if (!SEED_USERS.some((u) => u.id === userId)) {
+    throw new Error("Neznáma persona.");
+  }
+  const jar = await cookies();
+  jar.set(PERSONA_COOKIE, userId, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  revalidatePath("/", "layout");
+  redirect("/");
+}
+
+export async function approveSegmentAction(formData: FormData) {
+  const segmentId = String(formData.get("segmentId") || "");
+  if (!segmentId) throw new Error("Chýba segment.");
+  const session = await getShopSession();
+  await decideSegment({
+    session,
+    segmentId,
+    decision: "approved",
+  });
+  revalidatePath("/schvalenia");
+  revalidatePath("/kampane");
+  redirect("/schvalenia?ok=approved");
+}
+
+export async function rejectSegmentAction(formData: FormData) {
+  const segmentId = String(formData.get("segmentId") || "");
+  const reason = String(formData.get("reason") || "").trim();
+  if (!segmentId) throw new Error("Chýba segment.");
+  const session = await getShopSession();
+  await decideSegment({
+    session,
+    segmentId,
+    decision: "rejected",
+    rejectionReason: reason || undefined,
+  });
+  revalidatePath("/schvalenia");
+  revalidatePath("/kampane");
+  redirect("/schvalenia?ok=rejected");
 }
