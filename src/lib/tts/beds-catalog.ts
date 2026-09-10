@@ -19,6 +19,24 @@ export const BED_CATALOG: BedOption[] = [
     description: "Promo bed ~22 s",
     file: "podmaz-2.mp3",
   },
+  {
+    id: "soft",
+    name: "Soft pad",
+    description: "Jemné ambientné plochy",
+    file: "soft.mp3",
+  },
+  {
+    id: "warm",
+    name: "Warm lounge",
+    description: "Teplejší lounge atmosféra",
+    file: "warm.mp3",
+  },
+  {
+    id: "pulse",
+    name: "Soft pulse",
+    description: "Jemný rytmus bez vokálu",
+    file: "pulse.mp3",
+  },
 ];
 
 export function getBedById(id: string | undefined | null): BedOption | null {
