@@ -51,7 +51,7 @@ Env (Vercel → Project → Settings → Environment Variables):
 ```bash
 ELEVENLABS_API_KEY=...
 # optional:
-# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+# ELEVENLABS_VOICE_ID=8DN33ptiiwyivln5PvDi
 # TTS_PROVIDER=elevenlabs   # or gateway
 # AI_GATEWAY_API_KEY=...    # only if TTS_PROVIDER=gateway
 ```
