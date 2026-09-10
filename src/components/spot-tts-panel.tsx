@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { TTS_VOICES, type TtsVoiceId } from "@/lib/tts/gateway";
+import { useMemo, useState } from "react";
+import {
+  ELEVENLABS_VOICES,
+} from "@/lib/tts/elevenlabs";
+import { TTS_VOICES as GATEWAY_VOICES } from "@/lib/tts/gateway";
 
 type Props = {
   disabled?: boolean;
   defaultScript?: string;
+  /** Client hint — actual provider is chosen server-side via TTS_PROVIDER. */
+  providerHint?: "elevenlabs" | "gateway";
 };
 
 type AudioPayload = {
@@ -14,14 +19,20 @@ type AudioPayload = {
   durationSec: number;
   voice: string;
   model: string;
+  provider?: string;
 };
 
 export function SpotTtsPanel({
   disabled = false,
   defaultScript = "Navštívte našu predajňu tento víkend. Akciové ceny na celý sortiment. Massiva Air — váš spot medzi regálmi.",
+  providerHint = "elevenlabs",
 }: Props) {
+  const voices = useMemo(
+    () => (providerHint === "gateway" ? [...GATEWAY_VOICES] : ELEVENLABS_VOICES),
+    [providerHint],
+  );
   const [script, setScript] = useState(defaultScript);
-  const [voice, setVoice] = useState<TtsVoiceId>("nova");
+  const [voice, setVoice] = useState(voices[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -42,6 +53,7 @@ export function SpotTtsPanel({
         error?: string;
         hint?: string;
         audio?: AudioPayload;
+        provider?: string;
       };
       if (!res.ok || !data.audio) {
         setError(data.error || "Generovanie zlyhalo.");
@@ -58,13 +70,16 @@ export function SpotTtsPanel({
     }
   }
 
+  const badge =
+    providerHint === "gateway" ? "openai/tts-1" : "elevenlabs · multilingual v2";
+
   return (
     <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[rgba(7,21,18,0.03)] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-[family-name:var(--font-display)] text-base font-bold">
-          Spot cez AI Gateway (TTS)
+          Spot TTS
         </h3>
-        <span className="chip">openai/tts-1</span>
+        <span className="chip">{badge}</span>
       </div>
 
       <div className="field">
@@ -81,8 +96,11 @@ export function SpotTtsPanel({
           placeholder="Napíšte text reklamy…"
         />
         <p className="mt-1 text-xs text-[var(--ink-soft)]">
-          Cieľ ~15–30 s. Gateway na Verceli beží cez OIDC; lokálne treba
-          AI_GATEWAY_API_KEY.
+          Cieľ ~15–30 s. Provider:{" "}
+          {providerHint === "gateway"
+            ? "Vercel AI Gateway"
+            : "ElevenLabs (SK cez multilingual v2)"}
+          .
         </p>
       </div>
 
@@ -93,10 +111,10 @@ export function SpotTtsPanel({
             id="ttsVoice"
             name="ttsVoice"
             value={voice}
-            onChange={(e) => setVoice(e.target.value as TtsVoiceId)}
+            onChange={(e) => setVoice(e.target.value)}
             disabled={disabled || loading}
           >
-            {TTS_VOICES.map((v) => (
+            {voices.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.label}
               </option>
@@ -127,6 +145,7 @@ export function SpotTtsPanel({
           <audio controls src={audio.dataUrl} className="w-full" />
           <p className="text-xs text-[var(--ink-soft)]">
             {audio.filename} · ~{audio.durationSec}s · {audio.voice}
+            {audio.provider ? ` · ${audio.provider}` : ""}
           </p>
         </div>
       ) : (
@@ -146,7 +165,11 @@ export function SpotTtsPanel({
         value={audio?.durationSec || 30}
       />
       <input type="hidden" name="spotStorageKey" value={audio?.dataUrl || ""} />
-      <input type="hidden" name="spotSource" value={audio ? "gateway-tts" : "mock"} />
+      <input
+        type="hidden"
+        name="spotSource"
+        value={audio ? `${audio.provider || providerHint}-tts` : "mock"}
+      />
     </div>
   );
 }

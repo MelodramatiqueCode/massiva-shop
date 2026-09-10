@@ -42,21 +42,23 @@ REST náhľad:
 - `GET /api/massiva/packages`
 - `GET /api/massiva/contracts`
 
-## Spot TTS (AI Gateway)
+## Spot TTS
 
-Objednávka / builder má panel **Spot cez AI Gateway**:
+Default provider: **ElevenLabs** (`eleven_multilingual_v2`, SK).
 
-1. Napíšte SK text
-2. Vyberte hlas
-3. **Vygenerovať audio** → preview
-4. Odošlite objednávku (audio ide do Content)
+Env (Vercel → Project → Settings → Environment Variables):
 
-**Auth**
+```bash
+ELEVENLABS_API_KEY=...
+# optional:
+# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+# TTS_PROVIDER=elevenlabs   # or gateway
+# AI_GATEWAY_API_KEY=...    # only if TTS_PROVIDER=gateway
+```
 
-- **Vercel produkcia:** väčšinou bez nastavení (OIDC na linked projekte)
-- **Lokálne:** `AI_GATEWAY_API_KEY` v `.env.local` alebo `vercel env pull`
+Po nastavení env **Redeploy**.
 
-Model: `openai/tts-1` cez Gateway. Google Chirp neskôr ako samostatný provider.
+UI: `/nova-kampan` a `/objednat` → text → hlas → Vygenerovať audio → objednávka.
 
 ## Poznámka
 

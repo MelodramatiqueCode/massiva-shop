@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  generateSpotViaGateway,
-  hasGatewayAuth,
-  type TtsVoiceId,
-} from "@/lib/tts/gateway";
+  generateSpotAudio,
+  getActiveTtsProvider,
+  hasActiveTtsAuth,
+} from "@/lib/tts";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
       text?: string;
-      voice?: TtsVoiceId;
+      voice?: string;
     };
 
     const text = String(body.text || "").trim();
@@ -20,31 +20,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Chýba text spotu." }, { status: 400 });
     }
 
-    if (!hasGatewayAuth() && !process.env.AI_GATEWAY_API_KEY) {
-      // Still attempt — on Vercel OIDC may inject at runtime via @vercel/oidc
+    const provider = getActiveTtsProvider();
+    if (!hasActiveTtsAuth()) {
+      const hint =
+        provider === "elevenlabs"
+          ? "Pridajte ELEVENLABS_API_KEY do Vercel Environment Variables a redeploynite."
+          : "Pridajte AI_GATEWAY_API_KEY (alebo OIDC) a redeploynite.";
+      return NextResponse.json(
+        {
+          error: `TTS provider (${provider}) nie je nakonfigurovaný.`,
+          hint,
+        },
+        { status: 503 },
+      );
     }
 
-    const audio = await generateSpotViaGateway({
+    const audio = await generateSpotAudio({
       text,
       voice: body.voice,
     });
 
-    return NextResponse.json({
-      ok: true,
-      audio,
-    });
+    return NextResponse.json({ ok: true, audio, provider });
   } catch (err) {
     const message =
       err instanceof Error ? err.message : "Generovanie audia zlyhalo.";
-    const needsKey =
-      /api key|auth|unauthorized|401|oidc|credential/i.test(message) ||
-      (!process.env.AI_GATEWAY_API_KEY && !process.env.VERCEL_OIDC_TOKEN);
+    const provider = getActiveTtsProvider();
+    const needsKey = /api key|auth|unauthorized|401|permission|ELEVENLABS/i.test(
+      message,
+    );
 
     return NextResponse.json(
       {
         error: message,
         hint: needsKey
-          ? "Na Verceli stačí linked projekt (OIDC). Lokálne: AI_GATEWAY_API_KEY alebo `vercel env pull`."
+          ? provider === "elevenlabs"
+            ? "Skontrolujte ELEVENLABS_API_KEY a oprávnenia kľúča (text_to_speech)."
+            : "Skontrolujte AI_GATEWAY_API_KEY / OIDC."
           : undefined,
       },
       { status: 502 },
