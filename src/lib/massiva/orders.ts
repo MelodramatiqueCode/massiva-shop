@@ -1,7 +1,12 @@
 import { DEMO_ACCOUNT } from "./seed";
 import { getMassivaClient } from "./client";
 import { estimateCampaignPrice, MIN_CAMPAIGN_DAYS } from "./pricing";
-import type { CreateCampaignInput, CreateContentInput } from "./types";
+import { calendarDaysInclusive } from "./timetable";
+import type {
+  CreateCampaignInput,
+  CreateContentInput,
+  TimetableInterval,
+} from "./types";
 
 export { DEMO_ACCOUNT };
 
@@ -69,8 +74,11 @@ export async function placeCustomCampaign(input: {
   contactEmail: string;
   company?: string;
   startsAt: string;
-  days: number;
+  endsAt: string;
   playsPerHour: number;
+  timetable: TimetableInterval[];
+  weekdayCount: number;
+  windowHours: number;
   spotName: string;
   spotFilename: string;
   spotDurationSec: number;
@@ -78,8 +86,16 @@ export async function placeCustomCampaign(input: {
   if (input.venueIds.length < 1) {
     throw new Error("Vyber aspoň jednu predajňu na mape.");
   }
-  if (input.days < MIN_CAMPAIGN_DAYS) {
-    throw new Error(`Minimum je ${MIN_CAMPAIGN_DAYS} dní.`);
+  if (input.timetable.length < 1) {
+    throw new Error("Vyber dni a aspoň jedno platné časové okno.");
+  }
+
+  const days = calendarDaysInclusive(input.startsAt, input.endsAt);
+  if (days < MIN_CAMPAIGN_DAYS) {
+    throw new Error(`Obdobie musí mať aspoň ${MIN_CAMPAIGN_DAYS} dni.`);
+  }
+  if (new Date(input.endsAt) < new Date(input.startsAt)) {
+    throw new Error("Dátum do musí byť po dátume od.");
   }
 
   const api = getMassivaClient();
@@ -89,13 +105,13 @@ export async function placeCustomCampaign(input: {
     throw new Error("Niektoré predajne neexistujú.");
   }
 
-  const ends = new Date(input.startsAt);
-  ends.setDate(ends.getDate() + input.days);
   const chainIds = [...new Set(selected.map((v) => v.chainId))];
   const totalPriceEur = estimateCampaignPrice({
     venueCount: selected.length,
-    days: input.days,
+    days,
     playsPerHour: input.playsPerHour,
+    weekdayCount: input.weekdayCount,
+    windowHours: input.windowHours,
   });
 
   const content = await api.createContent({
@@ -112,9 +128,10 @@ export async function placeCustomCampaign(input: {
     contentId: content.id,
     venueIds: selected.map((v) => v.id),
     chainIds,
-    startsAt: new Date(input.startsAt).toISOString(),
-    endsAt: ends.toISOString(),
+    startsAt: new Date(`${input.startsAt}T00:00:00`).toISOString(),
+    endsAt: new Date(`${input.endsAt}T23:59:59`).toISOString(),
     playsPerHour: input.playsPerHour,
+    timetable: input.timetable,
     totalPriceEur,
     status: "scheduled",
   } satisfies CreateCampaignInput);

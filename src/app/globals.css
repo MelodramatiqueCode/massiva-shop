@@ -245,6 +245,24 @@ a {
   transition: background 140ms ease;
 }
 
+.day-pill {
+  min-width: 2.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.day-pill-active {
+  background: var(--lime);
+  border-color: transparent;
+  color: var(--ink);
+}
+
 .venue-map {
   height: min(58vh, 520px);
   min-height: 320px;

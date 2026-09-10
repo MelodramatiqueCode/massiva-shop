@@ -11,6 +11,12 @@ import {
   MIN_CAMPAIGN_DAYS,
   PRICE_PER_VENUE_PER_DAY_EUR,
 } from "@/lib/massiva/pricing";
+import {
+  WEEKDAY_OPTIONS,
+  calendarDaysInclusive,
+  windowHours,
+  type TimeWindow,
+} from "@/lib/massiva/timetable";
 import type { Chain, Venue } from "@/lib/massiva/types";
 
 const VenueMap = dynamic(
@@ -30,6 +36,12 @@ type Props = {
   chains: Chain[];
 };
 
+function defaultEndDate(start: string, minDays: number) {
+  const d = new Date(`${start}T00:00:00`);
+  d.setDate(d.getDate() + minDays - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 export function CampaignBuilder({ venues, chains }: Props) {
   const chainName = useMemo(
     () => Object.fromEntries(chains.map((c) => [c.id, c.name])),
@@ -40,16 +52,22 @@ export function CampaignBuilder({ venues, chains }: Props) {
     [venues],
   );
 
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [regionFilter, setRegionFilter] = useState<string>("all");
-  const [days, setDays] = useState(MIN_CAMPAIGN_DAYS);
-  const [playsPerHour, setPlaysPerHour] = useState(BASE_PLAYS_PER_HOUR);
-
   const tomorrow = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
   }, []);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [startsAt, setStartsAt] = useState(tomorrow);
+  const [endsAt, setEndsAt] = useState(defaultEndDate(tomorrow, MIN_CAMPAIGN_DAYS));
+  const [weekdays, setWeekdays] = useState<number[]>([0, 1, 2, 3, 4]);
+  const [windows, setWindows] = useState<TimeWindow[]>([
+    { id: "w1", start: "07:00", end: "10:00" },
+    { id: "w2", start: "15:00", end: "18:00" },
+  ]);
+  const [playsPerHour, setPlaysPerHour] = useState(BASE_PLAYS_PER_HOUR);
 
   const visibleVenues = useMemo(
     () =>
@@ -64,10 +82,14 @@ export function CampaignBuilder({ venues, chains }: Props) {
     [venues, selectedIds],
   );
 
+  const spanDays = calendarDaysInclusive(startsAt, endsAt);
+  const hours = windowHours(windows);
   const total = estimateCampaignPrice({
     venueCount: selectedIds.length,
-    days,
+    days: Math.max(0, spanDays),
     playsPerHour,
+    weekdayCount: weekdays.length,
+    windowHours: hours,
   });
 
   function toggle(id: string) {
@@ -87,6 +109,36 @@ export function CampaignBuilder({ venues, chains }: Props) {
   function clearSelection() {
     setSelectedIds([]);
   }
+
+  function toggleWeekday(day: number) {
+    setWeekdays((prev) =>
+      prev.includes(day)
+        ? prev.filter((d) => d !== day)
+        : [...prev, day].sort((a, b) => a - b),
+    );
+  }
+
+  function updateWindow(id: string, patch: Partial<TimeWindow>) {
+    setWindows((prev) => prev.map((w) => (w.id === id ? { ...w, ...patch } : w)));
+  }
+
+  function addWindow() {
+    setWindows((prev) => [
+      ...prev,
+      {
+        id: `w_${Date.now().toString(36)}`,
+        start: "12:00",
+        end: "14:00",
+      },
+    ]);
+  }
+
+  function removeWindow(id: string) {
+    setWindows((prev) => (prev.length <= 1 ? prev : prev.filter((w) => w.id !== id)));
+  }
+
+  const canSubmit =
+    selectedIds.length > 0 && weekdays.length > 0 && windows.length > 0 && spanDays >= 1;
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
@@ -168,22 +220,29 @@ export function CampaignBuilder({ venues, chains }: Props) {
         className="panel space-y-4 p-5 md:p-6"
       >
         <input type="hidden" name="venueIds" value={selectedIds.join(",")} />
+        <input type="hidden" name="weekdays" value={weekdays.join(",")} />
+        <input
+          type="hidden"
+          name="windows"
+          value={JSON.stringify(windows.map(({ start, end }) => ({ start, end })))}
+        />
 
         <div>
           <h2 className="font-[family-name:var(--font-display)] text-2xl font-bold tracking-[-0.03em]">
             Builder kampane
           </h2>
           <p className="text-sm text-[var(--ink-soft)]">
-            Vyber predajne na mape, nastav termín a spot.
+            Predajne, obdobie, dni, hodiny a spot.
           </p>
         </div>
 
         <div className="rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-2 text-sm font-semibold">
-          {selectedIds.length} predajní · odhad {formatEur(total)}
+          {selectedIds.length} predajní · {weekdays.length} dní/týž. · {hours.toFixed(1)} h/deň
+          · odhad {formatEur(total)}
         </div>
 
         {selectedVenues.length > 0 ? (
-          <ul className="max-h-28 space-y-1 overflow-auto text-sm text-[var(--ink-soft)]">
+          <ul className="max-h-24 space-y-1 overflow-auto text-sm text-[var(--ink-soft)]">
             {selectedVenues.map((v) => (
               <li key={v.id}>
                 • {v.city} — {v.name}
@@ -236,29 +295,127 @@ export function CampaignBuilder({ venues, chains }: Props) {
 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="field">
-            <label htmlFor="startsAt">Začiatok</label>
+            <label htmlFor="startsAt">Od dátumu</label>
             <input
               id="startsAt"
               name="startsAt"
               type="date"
               required
-              defaultValue={tomorrow}
+              value={startsAt}
+              onChange={(e) => {
+                const next = e.target.value;
+                setStartsAt(next);
+                if (next > endsAt) setEndsAt(defaultEndDate(next, MIN_CAMPAIGN_DAYS));
+              }}
             />
           </div>
           <div className="field">
-            <label htmlFor="days">Počet dní</label>
+            <label htmlFor="endsAt">Do dátumu</label>
             <input
-              id="days"
-              name="days"
-              type="number"
-              min={MIN_CAMPAIGN_DAYS}
-              value={days}
-              onChange={(e) =>
-                setDays(Number(e.target.value) || MIN_CAMPAIGN_DAYS)
-              }
+              id="endsAt"
+              name="endsAt"
+              type="date"
               required
+              value={endsAt}
+              min={startsAt}
+              onChange={(e) => setEndsAt(e.target.value)}
             />
           </div>
+        </div>
+        <p className="text-xs text-[var(--ink-soft)]">
+          Obdobie: {spanDays} dní (min. {MIN_CAMPAIGN_DAYS}).
+        </p>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-[var(--ink-soft)]">Dni v týždni</div>
+          <div className="flex flex-wrap gap-2">
+            {WEEKDAY_OPTIONS.map((d) => {
+              const active = weekdays.includes(d.value);
+              return (
+                <button
+                  key={d.value}
+                  type="button"
+                  className={`day-pill ${active ? "day-pill-active" : ""}`}
+                  onClick={() => toggleWeekday(d.value)}
+                  aria-pressed={active}
+                  title={d.full}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setWeekdays([0, 1, 2, 3, 4])}
+            >
+              Po–Pi
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setWeekdays([0, 1, 2, 3, 4, 5, 6])}
+            >
+              Celý týždeň
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setWeekdays([5, 6])}
+            >
+              Víkend
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold text-[var(--ink-soft)]">
+              Časové okná
+            </div>
+            <button type="button" className="btn btn-ghost" onClick={addWindow}>
+              + Okno
+            </button>
+          </div>
+          <div className="space-y-2">
+            {windows.map((w) => (
+              <div key={w.id} className="flex flex-wrap items-end gap-2">
+                <div className="field grow">
+                  <label htmlFor={`${w.id}-start`}>Od</label>
+                  <input
+                    id={`${w.id}-start`}
+                    type="time"
+                    value={w.start}
+                    onChange={(e) => updateWindow(w.id, { start: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="field grow">
+                  <label htmlFor={`${w.id}-end`}>Do</label>
+                  <input
+                    id={`${w.id}-end`}
+                    type="time"
+                    value={w.end}
+                    onChange={(e) => updateWindow(w.id, { end: e.target.value })}
+                    required
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => removeWindow(w.id)}
+                  disabled={windows.length <= 1}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-[var(--ink-soft)]">
+            Napr. 07:00–10:00 a 15:00–18:00 — platí pre každý vybraný deň.
+          </p>
         </div>
 
         <div className="field">
@@ -312,13 +469,13 @@ export function CampaignBuilder({ venues, chains }: Props) {
 
         <p className="text-xs text-[var(--ink-soft)]">
           Cenník mock: {formatEur(PRICE_PER_VENUE_PER_DAY_EUR)} / predajňa / deň
-          pri {BASE_PLAYS_PER_HOUR}×/hod. Viac prehraní zvyšuje cenu lineárne.
+          pri {BASE_PLAYS_PER_HOUR}×/hod a ~8 h okne. Menej dní/hodín znižuje cenu.
         </p>
 
         <button
           type="submit"
           className="btn btn-primary w-full"
-          disabled={selectedIds.length < 1}
+          disabled={!canSubmit}
         >
           Vytvoriť kampaň
         </button>

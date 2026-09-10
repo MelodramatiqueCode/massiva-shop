@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatDate, formatDateTime, formatEur, STATUS_LABELS } from "@/lib/format";
 import { getMassivaClient } from "@/lib/massiva/client";
+import { summarizeTimetable } from "@/lib/massiva/timetable";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ objednane?: string }>;
@@ -28,6 +29,7 @@ export default async function CampaignDetailPage({
   ]);
 
   const venueMap = Object.fromEntries(venues.map((v) => [v.id, v]));
+  const scheduleLines = summarizeTimetable(campaign.timetable ?? []);
 
   return (
     <div className="shell space-y-6">
@@ -103,6 +105,23 @@ export default async function CampaignDetailPage({
             })}
           </ul>
         </div>
+      </section>
+
+      <section className="panel fade-up space-y-3 p-5" style={{ animationDelay: "110ms" }}>
+        <h2 className="font-[family-name:var(--font-display)] text-xl font-bold">
+          Rozvrh vysielania
+        </h2>
+        {scheduleLines.length === 0 ? (
+          <p className="text-sm text-[var(--ink-soft)]">Bez detailného timetable.</p>
+        ) : (
+          <ul className="space-y-1.5 text-sm">
+            {scheduleLines.map((line) => (
+              <li key={line} className="font-semibold">
+                {line}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="panel fade-up overflow-hidden" style={{ animationDelay: "140ms" }}>
