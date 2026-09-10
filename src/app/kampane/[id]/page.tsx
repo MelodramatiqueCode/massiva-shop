@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  formatCptEur,
   formatDate,
   formatDateTime,
   formatEur,
@@ -112,7 +113,7 @@ export default async function CampaignDetailPage({
           <span className="text-sm text-[var(--ink-soft)]">CPT</span>
           <strong>
             {quote.estimatedContacts > 0
-              ? formatEur(totalPrice / quote.estimatedContacts, 2)
+              ? formatCptEur(totalPrice / quote.estimatedContacts)
               : "—"}
           </strong>
         </div>
@@ -137,7 +138,10 @@ export default async function CampaignDetailPage({
               : ""}
           </li>
           <li>
-            3. Footfall ~{formatNumber(quote.estimatedContacts)} kontaktov
+            3. Footfall ~{formatNumber(quote.estimatedContacts)} kontaktov · CPT{" "}
+            {quote.estimatedContacts > 0
+              ? formatCptEur(totalPrice / quote.estimatedContacts)
+              : "—"}
           </li>
           <li>
             4. Daypart ×{quote.avgDaypartMultiplier.toFixed(2)} · occupancy ×

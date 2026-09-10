@@ -7,6 +7,11 @@ export function formatEur(value: number, fractionDigits = 0) {
   }).format(value);
 }
 
+/** CPT is typically ~0.00X € — needs more fraction digits than CPP. */
+export function formatCptEur(value: number) {
+  return formatEur(value, 4);
+}
+
 export function formatNumber(value: number) {
   return new Intl.NumberFormat("sk-SK").format(value);
 }

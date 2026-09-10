@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { submitCampaignBuilderAction } from "@/lib/actions";
-import { formatEur, formatNumber } from "@/lib/format";
+import { formatCptEur, formatEur, formatNumber } from "@/lib/format";
 import {
   BASE_PLAYS_PER_HOUR,
   MAX_PLAYS_PER_HOUR,
@@ -301,7 +301,7 @@ export function CampaignBuilder({
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
                 {quote.estimatedContacts > 0
-                  ? formatEur(quote.pricePerContactEur, 2)
+                  ? formatCptEur(quote.pricePerContactEur)
                   : "—"}
               </dd>
             </div>
@@ -321,7 +321,7 @@ export function CampaignBuilder({
             <li>
               3. Footfall kontakty ~{formatNumber(quote.estimatedContacts)} · CPT{" "}
               {quote.estimatedContacts > 0
-                ? formatEur(quote.pricePerContactEur, 2)
+                ? formatCptEur(quote.pricePerContactEur)
                 : "—"}
             </li>
             <li>
