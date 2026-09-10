@@ -70,6 +70,13 @@ export type Venue = {
   baseRateEur: number;
   /** Estimated daily store visitors. */
   footfallDaily: number;
+  /**
+   * Popular-times style hourly curve (0–23), relative busy-ness 0–100.
+   * Mock model today; later filled from an external provider.
+   */
+  footfallHourly?: number[];
+  /** How footfallDaily / hourly were produced. */
+  footfallMode?: "model" | "provider";
   tier: VenueTier;
   /** 0–1 typical slot occupancy (busier = more expensive). */
   occupancyPct: number;

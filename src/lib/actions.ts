@@ -206,3 +206,11 @@ export async function setVenueSourceAction(formData: FormData) {
   revalidatePath("/", "layout");
   redirect("/predajne");
 }
+
+export async function setFootfallModeAction(formData: FormData) {
+  const mode = String(formData.get("mode") || "model");
+  const api = getMassivaClient();
+  await api.setFootfallMode(mode === "provider" ? "provider" : "model");
+  revalidatePath("/", "layout");
+  redirect("/predajne");
+}

@@ -36,6 +36,9 @@ import {
 /** Catalog source for venues/chains. Default mock keeps production safe. */
 export type VenueSource = "mock" | "servislist";
 
+/** Footfall estimate source. `provider` is a stub until an external API is wired. */
+export type FootfallSourceMode = "model" | "provider";
+
 export type MassivaStore = {
   accounts: Account[];
   contracts: Contract[];
@@ -51,6 +54,8 @@ export type MassivaStore = {
   campaignOrders: CampaignOrder[];
   orderSegments: OrderSegment[];
   venueSource: VenueSource;
+  /** Default model = synthetic SK footfall. provider = future hook (falls back to model). */
+  footfallMode: FootfallSourceMode;
 };
 
 /** On Vercel the repo `data/` dir is gitignored + FS is ephemeral — use /tmp. */
@@ -82,6 +87,10 @@ function hydrateVenues(
       lng: typeof v.lng === "number" ? v.lng : (seed?.lng ?? 19.5),
       baseRateEur: seed?.baseRateEur ?? v.baseRateEur ?? 9,
       footfallDaily: seed?.footfallDaily ?? v.footfallDaily ?? 3000,
+      footfallHourly: Array.isArray(v.footfallHourly)
+        ? v.footfallHourly
+        : seed?.footfallHourly,
+      footfallMode: v.footfallMode === "provider" ? "provider" : "model",
       tier: seed?.tier ?? v.tier ?? "C",
       occupancyPct: seed?.occupancyPct ?? v.occupancyPct ?? 0.5,
     };
@@ -142,12 +151,15 @@ function emptySeed(): MassivaStore {
     campaignOrders: [],
     orderSegments: [],
     venueSource: "mock",
+    footfallMode: "model",
   };
 }
 
 function normalizeStore(store: MassivaStore): MassivaStore {
   store.venueSource =
     store.venueSource === "servislist" ? "servislist" : "mock";
+  store.footfallMode =
+    store.footfallMode === "provider" ? "provider" : "model";
   store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
   store.accounts = store.accounts?.length
     ? store.accounts.map((a) =>

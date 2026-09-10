@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Outfit, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { PersonaSwitcher } from "@/components/persona-switcher";
+import { FootfallModeToggle } from "@/components/footfall-mode-toggle";
 import { VenueSourceToggle } from "@/components/venue-source-toggle";
+import { FOOTFALL_MODE_LABEL } from "@/lib/massiva/footfall-model";
 import { getMassivaClient } from "@/lib/massiva/client";
 import { getShopSession } from "@/lib/shop/session";
 import { listPendingApprovals } from "@/lib/shop/orders";
@@ -34,6 +36,7 @@ export default async function RootLayout({
     ? await listPendingApprovals(session)
     : [];
   const venueSource = await getMassivaClient().getVenueSource();
+  const footfallMode = await getMassivaClient().getFootfallMode();
 
   return (
     <html
@@ -67,6 +70,7 @@ export default async function RootLayout({
                 {pending.length > 0 ? ` (${pending.length})` : ""}
               </Link>
               <VenueSourceToggle />
+              <FootfallModeToggle />
               <PersonaSwitcher session={session} />
             </nav>
           </div>
@@ -77,7 +81,8 @@ export default async function RootLayout({
           {venueSource === "servislist"
             ? "ServisList inventár"
             : "mock napojenie"}{" "}
-          · persona: {session.organization.name} ({session.organization.type})
+          · {FOOTFALL_MODE_LABEL[footfallMode]} · persona:{" "}
+          {session.organization.name} ({session.organization.type})
         </footer>
       </body>
     </html>

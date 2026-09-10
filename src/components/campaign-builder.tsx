@@ -18,6 +18,7 @@ import {
   type TimeWindow,
 } from "@/lib/massiva/timetable";
 import type { Chain, Contract, Venue } from "@/lib/massiva/types";
+import { PopularTimesChart } from "@/components/popular-times-chart";
 import { SpotTtsPanel } from "@/components/spot-tts-panel";
 
 const VenueMap = dynamic(
@@ -67,6 +68,7 @@ export function CampaignBuilder({
   }, []);
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [startsAt, setStartsAt] = useState(tomorrow);
   const [endsAt, setEndsAt] = useState(defaultEndDate(tomorrow, MIN_CAMPAIGN_DAYS));
@@ -89,6 +91,13 @@ export function CampaignBuilder({
     () => venues.filter((v) => selectedIds.includes(v.id)),
     [venues, selectedIds],
   );
+
+  const focusVenue = useMemo(() => {
+    if (focusId) {
+      return venues.find((v) => v.id === focusId) ?? selectedVenues[0] ?? null;
+    }
+    return selectedVenues[0] ?? null;
+  }, [focusId, venues, selectedVenues]);
 
   const spanDays = calendarDaysInclusive(startsAt, endsAt);
   const timetable = useMemo(
@@ -115,6 +124,7 @@ export function CampaignBuilder({
   );
 
   function toggle(id: string) {
+    setFocusId(id);
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
@@ -126,10 +136,12 @@ export function CampaignBuilder({
       for (const v of visibleVenues) next.add(v.id);
       return [...next];
     });
+    setFocusId(visibleVenues[0]?.id ?? null);
   }
 
   function clearSelection() {
     setSelectedIds([]);
+    setFocusId(null);
   }
 
   function toggleWeekday(day: number) {
@@ -239,6 +251,23 @@ export function CampaignBuilder({
             })}
           </ul>
         </div>
+
+        {focusVenue ? (
+          <div className="panel p-4">
+            <div className="mb-2 text-sm font-semibold">
+              {focusVenue.name}
+              <span className="font-medium text-[var(--ink-soft)]">
+                {" "}
+                · {focusVenue.city}
+              </span>
+            </div>
+            <PopularTimesChart venue={focusVenue} compact />
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--ink-soft)]">
+            Klikni predajňu — zobrazí sa odhad návštevnosti (Popular times).
+          </p>
+        )}
       </section>
 
       <form

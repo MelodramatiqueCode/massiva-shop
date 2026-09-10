@@ -1,5 +1,15 @@
 import { mapServisListToChainsAndVenues } from "@/lib/shop/servislist-inventory";
-import { newId, readStore, writeStore, type VenueSource } from "./store";
+import {
+  applyFootfallModel,
+  type FootfallMode,
+} from "./footfall-model";
+import {
+  newId,
+  readStore,
+  writeStore,
+  type FootfallSourceMode,
+  type VenueSource,
+} from "./store";
 import { pickActiveContract } from "./contracts";
 import type {
   Account,
@@ -22,24 +32,38 @@ async function catalogFromSource(): Promise<{
   venues: Venue[];
   chains: Chain[];
   source: VenueSource;
+  footfallMode: FootfallMode;
 }> {
   const store = await readStore();
+  const footfallMode: FootfallMode =
+    store.footfallMode === "provider" ? "provider" : "model";
+  let venues: Venue[];
+  let chains: Chain[];
+  let source: VenueSource = "mock";
+
   if (store.venueSource === "servislist") {
     try {
       const mapped = mapServisListToChainsAndVenues();
-      return {
-        venues: mapped.venues,
-        chains: mapped.chains,
-        source: "servislist",
-      };
+      venues = mapped.venues;
+      chains = mapped.chains;
+      source = "servislist";
     } catch {
-      // Keep mock catalog if ServisList snapshot fails to load.
+      venues = store.venues;
+      chains = store.chains;
+      source = "mock";
     }
+  } else {
+    venues = store.venues;
+    chains = store.chains;
   }
+
+  // Always enrich with the mock model for now.
+  // `provider` mode is a UI/API stub — same numbers until a real feed exists.
   return {
-    venues: store.venues,
-    chains: store.chains,
-    source: "mock",
+    venues: applyFootfallModel(venues, footfallMode),
+    chains,
+    source,
+    footfallMode,
   };
 }
 
@@ -98,6 +122,9 @@ export type MassivaClient = {
 
   getVenueSource(): Promise<VenueSource>;
   setVenueSource(source: VenueSource): Promise<VenueSource>;
+
+  getFootfallMode(): Promise<FootfallSourceMode>;
+  setFootfallMode(mode: FootfallSourceMode): Promise<FootfallSourceMode>;
 };
 
 function matchQ<T extends object>(
@@ -362,6 +389,16 @@ export const mockMassiva: MassivaClient = {
     store.venueSource = source === "servislist" ? "servislist" : "mock";
     await writeStore(store);
     return store.venueSource;
+  },
+
+  async getFootfallMode() {
+    return (await catalogFromSource()).footfallMode;
+  },
+  async setFootfallMode(mode) {
+    const store = await readStore();
+    store.footfallMode = mode === "provider" ? "provider" : "model";
+    await writeStore(store);
+    return store.footfallMode;
   },
 };
 
