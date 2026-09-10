@@ -51,9 +51,9 @@ export function SpotTtsPanel({
   const [voice, setVoice] = useState(voices[0]?.id ?? "");
   const [model, setModel] = useState<ElevenLabsModelId>("eleven_multilingual_v2");
   const [bedEnabled, setBedEnabled] = useState(true);
-  const [bedId, setBedId] = useState(BED_CATALOG[0]?.id ?? "soft");
+  const [bedId, setBedId] = useState(BED_CATALOG[0]?.id ?? "podmaz-1");
   /** UI: 0–100 → mapuje na ~−28 … −10 dB */
-  const [bedLevel, setBedLevel] = useState(45);
+  const [bedLevel, setBedLevel] = useState(60);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
