@@ -8,6 +8,10 @@ export type Account = {
   email: string;
   company?: string;
   createdAt: string;
+  /** Contract discount 0–1 (e.g. 0.1 = 10 %). */
+  contractDiscountPct?: number;
+  /** Minimum allowed cost per play (CPP floor). */
+  minCppEur?: number;
 };
 
 export type Chain = {
@@ -15,6 +19,8 @@ export type Chain = {
   name: string;
   venueCount: number;
 };
+
+export type VenueTier = "A" | "B" | "C";
 
 export type Venue = {
   id: MassivaId;
@@ -26,6 +32,13 @@ export type Venue = {
   isOnline: boolean;
   lat: number;
   lng: number;
+  /** Base rate EUR / venue / full day (~8h reference). */
+  baseRateEur: number;
+  /** Estimated daily store visitors. */
+  footfallDaily: number;
+  tier: VenueTier;
+  /** 0–1 typical slot occupancy (busier = more expensive). */
+  occupancyPct: number;
 };
 
 export type Content = {
@@ -131,4 +144,6 @@ export type MediaPackage = {
   pricePerDayEur: number;
   minDays: number;
   featured?: boolean;
+  /** Package discount 0–1. */
+  discountPct?: number;
 };

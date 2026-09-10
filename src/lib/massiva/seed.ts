@@ -14,6 +14,8 @@ export const DEMO_ACCOUNT: Account = {
   email: "demo@example.com",
   company: "Demo Brand s.r.o.",
   createdAt: "2026-01-01T10:00:00.000Z",
+  contractDiscountPct: 0.08,
+  minCppEur: 0.12,
 };
 
 export const SEED_CHAINS: Chain[] = [
@@ -34,6 +36,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.1332,
     lng: 17.1074,
+    baseRateEur: 32,
+    footfallDaily: 8500,
+    tier: "A",
+    occupancyPct: 0.72,
   },
   {
     id: "ven_ba_02",
@@ -45,6 +51,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.1465,
     lng: 17.1112,
+    baseRateEur: 36,
+    footfallDaily: 9200,
+    tier: "A",
+    occupancyPct: 0.78,
   },
   {
     id: "ven_ba_03",
@@ -56,6 +66,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.1178,
     lng: 17.1091,
+    baseRateEur: 28,
+    footfallDaily: 7800,
+    tier: "A",
+    occupancyPct: 0.65,
   },
   {
     id: "ven_ba_04",
@@ -67,6 +81,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: false,
     lat: 48.1571,
     lng: 17.1524,
+    baseRateEur: 24,
+    footfallDaily: 6100,
+    tier: "B",
+    occupancyPct: 0.55,
   },
   {
     id: "ven_nr_01",
@@ -78,6 +96,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.3142,
     lng: 18.0876,
+    baseRateEur: 20,
+    footfallDaily: 5200,
+    tier: "B",
+    occupancyPct: 0.58,
   },
   {
     id: "ven_nr_02",
@@ -89,6 +111,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.3051,
     lng: 18.0983,
+    baseRateEur: 18,
+    footfallDaily: 4100,
+    tier: "B",
+    occupancyPct: 0.5,
   },
   {
     id: "ven_za_01",
@@ -100,6 +126,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 49.2104,
     lng: 18.7512,
+    baseRateEur: 19,
+    footfallDaily: 4800,
+    tier: "B",
+    occupancyPct: 0.54,
   },
   {
     id: "ven_za_02",
@@ -111,6 +141,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 49.2231,
     lng: 18.7398,
+    baseRateEur: 22,
+    footfallDaily: 5600,
+    tier: "B",
+    occupancyPct: 0.6,
   },
   {
     id: "ven_ke_01",
@@ -122,6 +156,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.7004,
     lng: 21.2381,
+    baseRateEur: 21,
+    footfallDaily: 6400,
+    tier: "B",
+    occupancyPct: 0.62,
   },
   {
     id: "ven_ke_02",
@@ -133,6 +171,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.7202,
     lng: 21.2456,
+    baseRateEur: 17,
+    footfallDaily: 3900,
+    tier: "C",
+    occupancyPct: 0.48,
   },
   {
     id: "ven_tt_01",
@@ -144,6 +186,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.3774,
     lng: 17.5883,
+    baseRateEur: 16,
+    footfallDaily: 3600,
+    tier: "C",
+    occupancyPct: 0.45,
   },
   {
     id: "ven_bb_01",
@@ -155,6 +201,10 @@ export const SEED_VENUES: Venue[] = [
     isOnline: true,
     lat: 48.7361,
     lng: 19.1462,
+    baseRateEur: 18,
+    footfallDaily: 4300,
+    tier: "B",
+    occupancyPct: 0.52,
   },
 ];
 
@@ -169,6 +219,7 @@ export const SEED_PACKAGES: MediaPackage[] = [
     pricePerDayEur: 89,
     minDays: 7,
     featured: true,
+    discountPct: 0.05,
   },
   {
     id: "pkg_west",
@@ -186,6 +237,7 @@ export const SEED_PACKAGES: MediaPackage[] = [
     pricePerDayEur: 129,
     minDays: 7,
     featured: true,
+    discountPct: 0.08,
   },
   {
     id: "pkg_north",
@@ -217,6 +269,7 @@ export const SEED_PACKAGES: MediaPackage[] = [
     pricePerDayEur: 249,
     minDays: 14,
     featured: true,
+    discountPct: 0.15,
   },
 ];
 

@@ -35,6 +35,9 @@ export default async function VenuesPage() {
                 <span className={`chip ${v.isOnline ? "chip-live" : "chip-warn"}`}>
                   {v.isOnline ? "Online" : "Offline"}
                 </span>
+                <div className="mt-1 text-xs text-[var(--ink-soft)]">
+                  tier {v.tier} · {v.baseRateEur} €/deň · footfall {v.footfallDaily}
+                </div>
               </div>
               <div className="text-sm text-[var(--ink-soft)]">{v.id}</div>
             </li>

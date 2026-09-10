@@ -6,15 +6,15 @@ import { submitCampaignBuilderAction } from "@/lib/actions";
 import { formatEur, formatNumber } from "@/lib/format";
 import {
   BASE_PLAYS_PER_HOUR,
-  estimateCampaignBreakdown,
   MAX_PLAYS_PER_HOUR,
   MIN_CAMPAIGN_DAYS,
-  PRICE_PER_VENUE_PER_DAY_EUR,
+  quoteCampaign,
 } from "@/lib/massiva/pricing";
+import { DEMO_ACCOUNT } from "@/lib/massiva/seed";
 import {
   WEEKDAY_OPTIONS,
+  buildTimetable,
   calendarDaysInclusive,
-  windowHours,
   type TimeWindow,
 } from "@/lib/massiva/timetable";
 import type { Chain, Venue } from "@/lib/massiva/types";
@@ -83,14 +83,27 @@ export function CampaignBuilder({ venues, chains }: Props) {
   );
 
   const spanDays = calendarDaysInclusive(startsAt, endsAt);
-  const hours = windowHours(windows);
-  const estimate = estimateCampaignBreakdown({
-    venueCount: selectedIds.length,
-    days: Math.max(0, spanDays),
-    playsPerHour,
-    weekdayCount: weekdays.length,
-    windowHours: hours,
-  });
+  const timetable = useMemo(
+    () =>
+      buildTimetable(
+        weekdays,
+        windows.map(({ start, end }) => ({ start, end })),
+      ),
+    [weekdays, windows],
+  );
+  const quote = useMemo(
+    () =>
+      quoteCampaign({
+        venues: selectedVenues,
+        startsAt,
+        endsAt,
+        playsPerHour,
+        timetable,
+        account: DEMO_ACCOUNT,
+        mediaPackage: null,
+      }),
+    [selectedVenues, startsAt, endsAt, playsPerHour, timetable],
+  );
 
   function toggle(id: string) {
     setSelectedIds((prev) =>
@@ -236,18 +249,19 @@ export function CampaignBuilder({ venues, chains }: Props) {
           </p>
         </div>
 
-        <div className="space-y-2 rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-3 text-sm">
+        <div className="space-y-3 rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-3 text-sm">
           <div className="font-semibold">
-            {selectedIds.length} predajní · {weekdays.length} dní/týž. ·{" "}
-            {hours.toFixed(1)} h/deň
+            {selectedIds.length} predajní · {quote.weekdayCount} dní/týž. ·{" "}
+            {quote.windowHours.toFixed(1)} h/deň · Ø base{" "}
+            {formatEur(quote.avgVenueBaseRateEur)}
           </div>
-          <dl className="grid gap-1.5 sm:grid-cols-3">
+          <dl className="grid gap-2 sm:grid-cols-2">
             <div>
               <dt className="text-xs font-medium text-[var(--ink-soft)]">
                 Odhadovaná cena
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {formatEur(estimate.totalPriceEur)}
+                {formatEur(quote.totalPriceEur)}
               </dd>
             </div>
             <div>
@@ -255,20 +269,58 @@ export function CampaignBuilder({ venues, chains }: Props) {
                 Odhad prehraní
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {formatNumber(estimate.estimatedPlays)}
+                {formatNumber(quote.estimatedPlays)}
               </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-[var(--ink-soft)]">
-                Cena / prehratie
+                Cena / prehratie (CPP)
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {estimate.estimatedPlays > 0
-                  ? formatEur(estimate.pricePerPlayEur, 2)
+                {quote.estimatedPlays > 0
+                  ? formatEur(quote.pricePerPlayEur, 2)
+                  : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-[var(--ink-soft)]">
+                Cena / kontakt (CPT)
+              </dt>
+              <dd className="text-lg font-extrabold tracking-tight">
+                {quote.estimatedContacts > 0
+                  ? formatEur(quote.pricePerContactEur, 2)
                   : "—"}
               </dd>
             </div>
           </dl>
+          <ul className="space-y-1 text-xs text-[var(--ink-soft)]">
+            <li>
+              1. Venue base Ø {formatEur(quote.avgVenueBaseRateEur)}/deň · tiery A/B/C
+            </li>
+            <li>
+              2. CPP {quote.estimatedPlays > 0 ? formatEur(quote.pricePerPlayEur, 2) : "—"}
+              {quote.cppFloorApplied
+                ? ` · floor ${formatEur(quote.minCppEur, 2)} aktivovaný`
+                : quote.minCppEur
+                  ? ` · floor ${formatEur(quote.minCppEur, 2)}`
+                  : ""}
+            </li>
+            <li>
+              3. Footfall kontakty ~{formatNumber(quote.estimatedContacts)} · CPT{" "}
+              {quote.estimatedContacts > 0
+                ? formatEur(quote.pricePerContactEur, 2)
+                : "—"}
+            </li>
+            <li>
+              4. Daypart ×{quote.avgDaypartMultiplier.toFixed(2)} · occupancy ×
+              {quote.avgOccupancyMultiplier.toFixed(2)}
+            </li>
+            <li>
+              5. Zľava zmluva {(quote.contractDiscountPct * 100).toFixed(0)}% · balík{" "}
+              {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
+              {formatEur(quote.subtotalEur)}
+            </li>
+          </ul>
         </div>
 
         {selectedVenues.length > 0 ? (
@@ -498,8 +550,8 @@ export function CampaignBuilder({ venues, chains }: Props) {
         </div>
 
         <p className="text-xs text-[var(--ink-soft)]">
-          Cenník mock: {formatEur(PRICE_PER_VENUE_PER_DAY_EUR)} / predajňa / deň
-          pri {BASE_PLAYS_PER_HOUR}×/hod a ~8 h okne. Menej dní/hodín znižuje cenu.
+          Rate engine: venue base + daypart/occupancy + footfall CPT + CPP floor +
+          zmluvná zľava. Základ sa líši podľa predajne (tier A/B/C).
         </p>
 
         <button

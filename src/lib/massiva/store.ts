@@ -32,16 +32,29 @@ export type MassivaStore = {
 const DATA_DIR = path.join(process.cwd(), "data");
 const STORE_FILE = path.join(DATA_DIR, "massiva-store.json");
 
-const venueCoords = Object.fromEntries(
-  SEED_VENUES.map((v) => [v.id, { lat: v.lat, lng: v.lng }]),
-);
+const venueById = Object.fromEntries(SEED_VENUES.map((v) => [v.id, v]));
 
-function hydrateVenues(venues: Array<Venue & { lat?: number; lng?: number }>): Venue[] {
-  return venues.map((v) => ({
-    ...v,
-    lat: typeof v.lat === "number" ? v.lat : (venueCoords[v.id]?.lat ?? 48.7),
-    lng: typeof v.lng === "number" ? v.lng : (venueCoords[v.id]?.lng ?? 19.5),
-  }));
+function hydrateVenues(
+  venues: Array<Partial<Venue> & { id: string }>,
+): Venue[] {
+  return venues.map((v) => {
+    const seed = venueById[v.id];
+    return {
+      id: v.id,
+      name: v.name ?? seed?.name ?? v.id,
+      city: v.city ?? seed?.city ?? "",
+      address: v.address ?? seed?.address ?? "",
+      chainId: v.chainId ?? seed?.chainId ?? "",
+      region: v.region ?? seed?.region ?? "",
+      isOnline: v.isOnline ?? seed?.isOnline ?? true,
+      lat: typeof v.lat === "number" ? v.lat : (seed?.lat ?? 48.7),
+      lng: typeof v.lng === "number" ? v.lng : (seed?.lng ?? 19.5),
+      baseRateEur: v.baseRateEur ?? seed?.baseRateEur ?? 18,
+      footfallDaily: v.footfallDaily ?? seed?.footfallDaily ?? 3000,
+      tier: v.tier ?? seed?.tier ?? "C",
+      occupancyPct: v.occupancyPct ?? seed?.occupancyPct ?? 0.5,
+    };
+  });
 }
 
 function emptySeed(): MassivaStore {
@@ -62,8 +75,15 @@ export async function readStore(): Promise<MassivaStore> {
     const raw = await fs.readFile(STORE_FILE, "utf8");
     const store = JSON.parse(raw) as MassivaStore;
     store.venues = hydrateVenues(store.venues ?? SEED_VENUES);
-    // Keep seed packages/coords fresh for map builder demos
-    if (!store.packages?.length) store.packages = SEED_PACKAGES;
+    store.accounts = store.accounts?.length
+      ? store.accounts.map((a) =>
+          a.id === DEMO_ACCOUNT.id ? { ...DEMO_ACCOUNT, ...a } : a,
+        )
+      : [DEMO_ACCOUNT];
+    store.packages = SEED_PACKAGES.map((pkg) => {
+      const existing = (store.packages ?? []).find((p) => p.id === pkg.id);
+      return existing ? { ...pkg, ...existing, discountPct: pkg.discountPct ?? existing.discountPct } : pkg;
+    });
     return store;
   } catch {
     const seed = emptySeed();

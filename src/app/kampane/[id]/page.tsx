@@ -8,12 +8,9 @@ import {
   STATUS_LABELS,
 } from "@/lib/format";
 import { getMassivaClient } from "@/lib/massiva/client";
-import {
-  estimateCampaignBreakdown,
-  weekdayCountFromTimetable,
-  windowHoursFromTimetable,
-} from "@/lib/massiva/pricing";
-import { calendarDaysInclusive, summarizeTimetable } from "@/lib/massiva/timetable";
+import { quoteCampaign } from "@/lib/massiva/pricing";
+import { DEMO_ACCOUNT } from "@/lib/massiva/seed";
+import { summarizeTimetable } from "@/lib/massiva/timetable";
 
 type Params = Promise<{ id: string }>;
 type SearchParams = Promise<{ objednane?: string }>;
@@ -41,21 +38,20 @@ export default async function CampaignDetailPage({
 
   const venueMap = Object.fromEntries(venues.map((v) => [v.id, v]));
   const scheduleLines = summarizeTimetable(campaign.timetable ?? []);
-  const timetable = campaign.timetable ?? [];
-  const estimate = estimateCampaignBreakdown({
-    venueCount: campaign.venueIds.length,
-    days: calendarDaysInclusive(
-      campaign.startsAt.slice(0, 10),
-      campaign.endsAt.slice(0, 10),
-    ),
+  const selected = campaign.venueIds
+    .map((id) => venueMap[id])
+    .filter(Boolean);
+  const account = (await api.getAccount(campaign.accountId)) ?? DEMO_ACCOUNT;
+  const quote = quoteCampaign({
+    venues: selected,
+    startsAt: campaign.startsAt.slice(0, 10),
+    endsAt: campaign.endsAt.slice(0, 10),
     playsPerHour: campaign.playsPerHour,
-    weekdayCount: weekdayCountFromTimetable(timetable),
-    windowHours: windowHoursFromTimetable(timetable),
+    timetable: campaign.timetable ?? [],
+    account,
+    mediaPackage: pkg,
   });
-  // Prefer stored total if present; still show plays/CPM from model.
-  const totalPrice = campaign.totalPriceEur || estimate.totalPriceEur;
-  const pricePerPlay =
-    estimate.estimatedPlays > 0 ? totalPrice / estimate.estimatedPlays : 0;
+  const totalPrice = campaign.totalPriceEur || quote.totalPriceEur;
 
   return (
     <div className="shell space-y-6">
@@ -84,7 +80,7 @@ export default async function CampaignDetailPage({
       </section>
 
       <section
-        className="fade-up grid grid-cols-1 gap-3 sm:grid-cols-3"
+        className="fade-up grid grid-cols-2 gap-3 md:grid-cols-4"
         style={{ animationDelay: "60ms" }}
       >
         <div className="stat">
@@ -93,14 +89,57 @@ export default async function CampaignDetailPage({
         </div>
         <div className="stat">
           <span className="text-sm text-[var(--ink-soft)]">Odhad prehraní</span>
-          <strong>{formatNumber(estimate.estimatedPlays)}</strong>
+          <strong>{formatNumber(quote.estimatedPlays)}</strong>
         </div>
         <div className="stat">
-          <span className="text-sm text-[var(--ink-soft)]">Cena / prehratie</span>
+          <span className="text-sm text-[var(--ink-soft)]">CPP</span>
           <strong>
-            {estimate.estimatedPlays > 0 ? formatEur(pricePerPlay, 2) : "—"}
+            {quote.estimatedPlays > 0
+              ? formatEur(totalPrice / quote.estimatedPlays, 2)
+              : "—"}
           </strong>
         </div>
+        <div className="stat">
+          <span className="text-sm text-[var(--ink-soft)]">CPT</span>
+          <strong>
+            {quote.estimatedContacts > 0
+              ? formatEur(totalPrice / quote.estimatedContacts, 2)
+              : "—"}
+          </strong>
+        </div>
+      </section>
+
+      <section className="panel fade-up space-y-2 p-5 text-sm" style={{ animationDelay: "70ms" }}>
+        <h2 className="font-[family-name:var(--font-display)] text-lg font-bold">
+          Rate engine (5 faktorov)
+        </h2>
+        <ul className="space-y-1 text-[var(--ink-soft)]">
+          <li>
+            1. Venue base Ø {formatEur(quote.avgVenueBaseRateEur)}/deň ·{" "}
+            {selected.length} predajní
+          </li>
+          <li>
+            2. CPP{" "}
+            {quote.estimatedPlays > 0
+              ? formatEur(totalPrice / quote.estimatedPlays, 2)
+              : "—"}
+            {quote.cppFloorApplied
+              ? ` · floor ${formatEur(quote.minCppEur, 2)}`
+              : ""}
+          </li>
+          <li>
+            3. Footfall ~{formatNumber(quote.estimatedContacts)} kontaktov
+          </li>
+          <li>
+            4. Daypart ×{quote.avgDaypartMultiplier.toFixed(2)} · occupancy ×
+            {quote.avgOccupancyMultiplier.toFixed(2)}
+          </li>
+          <li>
+            5. Zľavy: zmluva {(quote.contractDiscountPct * 100).toFixed(0)}% ·
+            balík {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
+            {formatEur(quote.subtotalEur)}
+          </li>
+        </ul>
       </section>
 
       <section

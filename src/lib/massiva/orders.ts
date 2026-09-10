@@ -1,6 +1,6 @@
 import { DEMO_ACCOUNT } from "./seed";
 import { getMassivaClient } from "./client";
-import { estimateCampaignPrice, MIN_CAMPAIGN_DAYS } from "./pricing";
+import { MIN_CAMPAIGN_DAYS, quoteCampaign } from "./pricing";
 import { calendarDaysInclusive } from "./timetable";
 import type {
   CreateCampaignInput,
@@ -28,6 +28,7 @@ export async function placeOrder(input: {
 
   const ends = new Date(input.startsAt);
   ends.setDate(ends.getDate() + input.days);
+  const endsAt = ends.toISOString().slice(0, 10);
 
   const content = await api.createContent({
     name: input.spotName,
@@ -40,6 +41,23 @@ export async function placeOrder(input: {
   const venues = await api.getVenues();
   const selected = venues.filter((v) => pkg.venueIds.includes(v.id));
   const chainIds = [...new Set(selected.map((v) => v.chainId))];
+  const account = await api.getAccount(DEMO_ACCOUNT.id);
+
+  const timetable = [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => ({
+    dayOfWeek,
+    startMinute: 8 * 60,
+    endMinute: 20 * 60,
+  }));
+
+  const quote = quoteCampaign({
+    venues: selected,
+    startsAt: input.startsAt,
+    endsAt,
+    playsPerHour: pkg.playsPerHour,
+    timetable,
+    account,
+    mediaPackage: pkg,
+  });
 
   const campaign = await api.createCampaign({
     name: input.campaignName,
@@ -51,7 +69,8 @@ export async function placeOrder(input: {
     endsAt: ends.toISOString(),
     playsPerHour: pkg.playsPerHour,
     packageId: pkg.id,
-    totalPriceEur: pkg.pricePerDayEur * input.days,
+    timetable,
+    totalPriceEur: quote.totalPriceEur,
     status: "scheduled",
   } satisfies CreateCampaignInput);
 
@@ -59,6 +78,7 @@ export async function placeOrder(input: {
     campaign,
     content,
     package: pkg,
+    quote,
     contact: {
       name: input.contactName,
       email: input.contactEmail,
@@ -82,6 +102,7 @@ export async function placeCustomCampaign(input: {
   spotName: string;
   spotFilename: string;
   spotDurationSec: number;
+  packageId?: string;
 }) {
   if (input.venueIds.length < 1) {
     throw new Error("Vyber aspoň jednu predajňu na mape.");
@@ -106,12 +127,19 @@ export async function placeCustomCampaign(input: {
   }
 
   const chainIds = [...new Set(selected.map((v) => v.chainId))];
-  const totalPriceEur = estimateCampaignPrice({
-    venueCount: selected.length,
-    days,
+  const account = await api.getAccount(DEMO_ACCOUNT.id);
+  const mediaPackage = input.packageId
+    ? await api.getPackage(input.packageId)
+    : null;
+
+  const quote = quoteCampaign({
+    venues: selected,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
     playsPerHour: input.playsPerHour,
-    weekdayCount: input.weekdayCount,
-    windowHours: input.windowHours,
+    timetable: input.timetable,
+    account,
+    mediaPackage,
   });
 
   const content = await api.createContent({
@@ -132,7 +160,8 @@ export async function placeCustomCampaign(input: {
     endsAt: new Date(`${input.endsAt}T23:59:59`).toISOString(),
     playsPerHour: input.playsPerHour,
     timetable: input.timetable,
-    totalPriceEur,
+    packageId: input.packageId,
+    totalPriceEur: quote.totalPriceEur,
     status: "scheduled",
   } satisfies CreateCampaignInput);
 
@@ -140,6 +169,7 @@ export async function placeCustomCampaign(input: {
     campaign,
     content,
     venues: selected,
+    quote,
     contact: {
       name: input.contactName,
       email: input.contactEmail,
