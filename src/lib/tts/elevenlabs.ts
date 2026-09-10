@@ -10,7 +10,8 @@ import {
  * Restricted API keys often cannot list voices — keep a fixed catalog.
  */
 export const ELEVENLABS_VOICES: TtsVoiceOption[] = [
-  { id: "8DN33ptiiwyivln5PvDi", label: "Massiva (predvolený)" },
+  { id: "8DN33ptiiwyivln5PvDi", label: "Massiva 1" },
+  { id: "LDkdzEZ4RBoQe2cmKR9W", label: "Massiva 2" },
   { id: "21m00Tcm4TlvDq8ikWAM", label: "Rachel (ženský)" },
   { id: "EXAVITQu4vr4xnSDxMaL", label: "Sarah (ženský)" },
   { id: "pNInz6obpgDQGcFmaJgB", label: "Adam (mužský)" },
