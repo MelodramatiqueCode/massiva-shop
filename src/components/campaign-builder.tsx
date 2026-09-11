@@ -18,6 +18,7 @@ import {
   type TimeWindow,
 } from "@/lib/massiva/timetable";
 import type { Chain, Contract, Venue } from "@/lib/massiva/types";
+import type { VenueSource } from "@/lib/massiva/store";
 import { PopularTimesChart } from "@/components/popular-times-chart";
 import { SpotTtsPanel } from "@/components/spot-tts-panel";
 
@@ -38,6 +39,7 @@ type Props = {
   chains: Chain[];
   contract?: Contract | null;
   canOrder?: boolean;
+  venueSource?: VenueSource;
 };
 
 function defaultEndDate(start: string, minDays: number) {
@@ -51,6 +53,7 @@ export function CampaignBuilder({
   chains,
   contract = null,
   canOrder = true,
+  venueSource = "mock",
 }: Props) {
   const chainName = useMemo(
     () => Object.fromEntries(chains.map((c) => [c.id, c.name])),
@@ -59,6 +62,11 @@ export function CampaignBuilder({
   const regions = useMemo(
     () => [...new Set(venues.map((v) => v.region))].sort(),
     [venues],
+  );
+  const chainOptions = useMemo(
+    () =>
+      [...chains].sort((a, b) => a.name.localeCompare(b.name, "sk")),
+    [chains],
   );
 
   const tomorrow = useMemo(() => {
@@ -70,6 +78,7 @@ export function CampaignBuilder({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [chainFilter, setChainFilter] = useState<string>("all");
   const [startsAt, setStartsAt] = useState(tomorrow);
   const [endsAt, setEndsAt] = useState(defaultEndDate(tomorrow, MIN_CAMPAIGN_DAYS));
   const [weekdays, setWeekdays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -79,17 +88,25 @@ export function CampaignBuilder({
   ]);
   const [playsPerHour, setPlaysPerHour] = useState(BASE_PLAYS_PER_HOUR);
 
-  const visibleVenues = useMemo(
-    () =>
-      regionFilter === "all"
-        ? venues
-        : venues.filter((v) => v.region === regionFilter),
-    [venues, regionFilter],
-  );
+  const visibleVenues = useMemo(() => {
+    let list = venues;
+    if (regionFilter !== "all") {
+      list = list.filter((v) => v.region === regionFilter);
+    }
+    if (chainFilter !== "all") {
+      list = list.filter((v) => v.chainId === chainFilter);
+    }
+    return list;
+  }, [venues, regionFilter, chainFilter]);
 
   const selectedVenues = useMemo(
     () => venues.filter((v) => selectedIds.includes(v.id)),
     [venues, selectedIds],
+  );
+
+  const selectedChainCount = useMemo(
+    () => new Set(selectedVenues.map((v) => v.chainId)).size,
+    [selectedVenues],
   );
 
   const focusVenue = useMemo(() => {
@@ -139,6 +156,11 @@ export function CampaignBuilder({
     setFocusId(visibleVenues[0]?.id ?? null);
   }
 
+  function selectAll() {
+    setSelectedIds(venues.map((v) => v.id));
+    setFocusId(venues[0]?.id ?? null);
+  }
+
   function clearSelection() {
     setSelectedIds([]);
     setFocusId(null);
@@ -182,11 +204,15 @@ export function CampaignBuilder({
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
       <section className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
+          <span className="chip chip-live">
+            {venueSource === "servislist" ? "ServisList" : "Mock"} ·{" "}
+            {venues.length} pinov
+          </span>
           <label
             className="text-sm font-semibold text-[var(--ink-soft)]"
             htmlFor="region"
           >
-            Filter regiónu
+            Región
           </label>
           <select
             id="region"
@@ -201,8 +227,30 @@ export function CampaignBuilder({
               </option>
             ))}
           </select>
+          <label
+            className="text-sm font-semibold text-[var(--ink-soft)]"
+            htmlFor="chain"
+          >
+            Partner
+          </label>
+          <select
+            id="chain"
+            className="max-w-[12rem] rounded-full border border-[var(--line)] bg-white/80 px-3 py-1.5 text-sm"
+            value={chainFilter}
+            onChange={(e) => setChainFilter(e.target.value)}
+          >
+            <option value="all">Všetci partneri</option>
+            {chainOptions.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.venueCount})
+              </option>
+            ))}
+          </select>
           <button type="button" className="btn btn-ghost" onClick={selectVisible}>
-            Vybrať viditeľné
+            Vybrať filtrované ({visibleVenues.length})
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={selectAll}>
+            Vybrať všetky ({venues.length})
           </button>
           <button type="button" className="btn btn-ghost" onClick={clearSelection}>
             Vyčistiť
@@ -294,17 +342,27 @@ export function CampaignBuilder({
 
         <div className="space-y-3 rounded-xl bg-[rgba(200,245,74,0.2)] px-3 py-3 text-sm">
           <div className="font-semibold">
-            {selectedIds.length} predajní · {quote.weekdayCount} dní/týž. ·{" "}
-            {quote.windowHours.toFixed(1)} h/deň · Ø base{" "}
-            {formatEur(quote.avgVenueBaseRateEur)}
+            Objem: {selectedIds.length} predajní · {selectedChainCount} partnerov
+            · {spanDays} dní · {quote.weekdayCount} dní/týž. ·{" "}
+            {quote.windowHours.toFixed(1)} h/deň
           </div>
           <dl className="grid gap-2 sm:grid-cols-2">
             <div>
               <dt className="text-xs font-medium text-[var(--ink-soft)]">
-                Odhadovaná cena
+                Odhadovaná cena kampane
+              </dt>
+              <dd className="text-2xl font-extrabold tracking-tight">
+                {selectedIds.length > 0 ? formatEur(quote.totalPriceEur) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-medium text-[var(--ink-soft)]">
+                Odhad kontaktov (footfall model)
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {formatEur(quote.totalPriceEur)}
+                {selectedIds.length > 0
+                  ? formatNumber(quote.estimatedContacts)
+                  : "—"}
               </dd>
             </div>
             <div>
@@ -312,36 +370,32 @@ export function CampaignBuilder({
                 Odhad prehraní
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {formatNumber(quote.estimatedPlays)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-[var(--ink-soft)]">
-                Cena / prehratie (CPP)
-              </dt>
-              <dd className="text-lg font-extrabold tracking-tight">
-                {quote.estimatedPlays > 0
-                  ? formatEur(quote.pricePerPlayEur, 2)
+                {selectedIds.length > 0
+                  ? formatNumber(quote.estimatedPlays)
                   : "—"}
               </dd>
             </div>
             <div>
               <dt className="text-xs font-medium text-[var(--ink-soft)]">
-                Cena / kontakt (CPT)
+                CPT / CPP
               </dt>
               <dd className="text-lg font-extrabold tracking-tight">
-                {quote.estimatedContacts > 0
-                  ? formatCptEur(quote.pricePerContactEur)
+                {selectedIds.length > 0 && quote.estimatedContacts > 0
+                  ? `${formatCptEur(quote.pricePerContactEur)} · ${formatEur(quote.pricePerPlayEur, 2)}`
                   : "—"}
               </dd>
             </div>
           </dl>
           <ul className="space-y-1 text-xs text-[var(--ink-soft)]">
             <li>
-              1. Venue base Ø {formatEur(quote.avgVenueBaseRateEur)}/deň · tiery A/B/C
+              1. Venue base Ø {formatEur(quote.avgVenueBaseRateEur)}/deň · tiery
+              A/B/C
             </li>
             <li>
-              2. CPP {quote.estimatedPlays > 0 ? formatEur(quote.pricePerPlayEur, 2) : "—"}
+              2. CPP{" "}
+              {quote.estimatedPlays > 0
+                ? formatEur(quote.pricePerPlayEur, 2)
+                : "—"}
               {quote.cppFloorApplied
                 ? ` · floor ${formatEur(quote.minCppEur, 2)} aktivovaný`
                 : quote.minCppEur
@@ -359,11 +413,17 @@ export function CampaignBuilder({
               {quote.avgOccupancyMultiplier.toFixed(2)}
             </li>
             <li>
-              5. Zľava zmluva {(quote.contractDiscountPct * 100).toFixed(0)}% · balík{" "}
-              {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
+              5. Zľava zmluva {(quote.contractDiscountPct * 100).toFixed(0)}% ·
+              balík {(quote.packageDiscountPct * 100).toFixed(0)}% · subtotal{" "}
               {formatEur(quote.subtotalEur)}
             </li>
           </ul>
+          {selectedIds.length >= 20 ? (
+            <p className="text-xs font-medium text-[var(--teal-deep)]">
+              Väčší objem ({selectedIds.length} prevádzok) — cena vyššie je live
+              odhad rate engine pre celý výber.
+            </p>
+          ) : null}
         </div>
 
         {selectedVenues.length > 0 ? (
